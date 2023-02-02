@@ -1,6 +1,4 @@
 # RuoYi-Vue-Multi-Tenant
-##### github：[https://github.com/leslie1015/RuoYi-Vue-Multi-Tenant](https://github.com/leslie1015/RuoYi-Vue-Multi-Tenant)
-##### gitee：  [https://gitee.com/leslie8195/ruo-yi-vue-multi-tenant](https://gitee.com/leslie8195/ruo-yi-vue-multi-tenant/tree/master)
 
 #### 介绍
 基于RuoYi-Vue扩展的多租户框架（SpringBoot，Spring Security，JWT，Vue & Element 的前后端分离权限管理系统）
