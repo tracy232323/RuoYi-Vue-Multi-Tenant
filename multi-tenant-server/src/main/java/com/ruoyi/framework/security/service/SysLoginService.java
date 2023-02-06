@@ -2,13 +2,19 @@ package com.ruoyi.framework.security.service;
 
 import javax.annotation.Resource;
 
+import com.alibaba.fastjson.JSON;
+import com.ruoyi.common.utils.spring.SpringUtils;
 import com.ruoyi.project.system.domain.SysUser;
 import com.ruoyi.project.system.service.ISysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.exception.CustomException;
@@ -32,7 +38,7 @@ public class SysLoginService {
     private TokenService tokenService;
 
     @Autowired
-    private ISysUserService userService;
+    private ISysUserService sysUserService;
 
     @Resource
     private AuthenticationManager authenticationManager;
@@ -82,10 +88,10 @@ public class SysLoginService {
     }
 
     public String ssoLogin(String username) {
-        SysUser sysUser = userService.selectUserByUserName(username);
-
-        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, sysUser.getPassword()));
+        SysUser sysUser = sysUserService.selectUserByUserName(username);
+        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username,sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
+        System.out.println(JSON.toJSONString(loginUser));
         // 生成token
         return tokenService.createToken(loginUser);
     }

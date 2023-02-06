@@ -43,7 +43,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             log.info("登录用户：{} 已被停用.", username);
             throw new BaseException("对不起，您的账号：" + username + " 已停用");
         }
-        System.out.println("user:----------------------" + JSON.toJSONString(user));
         return createLoginUser(user);
     }
 
