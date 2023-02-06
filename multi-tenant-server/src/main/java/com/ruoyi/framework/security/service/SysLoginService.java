@@ -2,6 +2,8 @@ package com.ruoyi.framework.security.service;
 
 import javax.annotation.Resource;
 
+import com.ruoyi.project.system.domain.SysUser;
+import com.ruoyi.project.system.service.ISysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -28,6 +30,9 @@ import com.ruoyi.framework.security.LoginUser;
 public class SysLoginService {
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private ISysUserService userService;
 
     @Resource
     private AuthenticationManager authenticationManager;
@@ -60,8 +65,7 @@ public class SysLoginService {
         Authentication authentication = null;
         try {
             // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
-            authentication = authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(username, password));
+            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
         } catch (Exception e) {
             if (e instanceof BadCredentialsException) {
                 AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match")));
@@ -73,6 +77,15 @@ public class SysLoginService {
         }
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        // 生成token
+        return tokenService.createToken(loginUser);
+    }
+
+    public String ssoLogin(String username) {
+        SysUser sysUser = userService.selectUserByUserName(username);
+
+        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, sysUser.getPassword()));
+        LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
         // 生成token
         return tokenService.createToken(loginUser);
     }

@@ -56,6 +56,16 @@ public class SysLoginController
         return ajax;
     }
 
+    @PostMapping("/ssoLogin")
+    public AjaxResult ssoLogin(@RequestBody LoginBody loginBody)
+    {
+        AjaxResult ajax = AjaxResult.success();
+        // 生成令牌
+        String token = loginService.ssoLogin(loginBody.getUsername());
+        ajax.put(Constants.TOKEN, token);
+        return ajax;
+    }
+
     /**
      * 获取用户信息
      * 
