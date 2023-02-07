@@ -2,17 +2,19 @@ package com.ruoyi.framework.security.service;
 
 import javax.annotation.Resource;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
-import com.ruoyi.common.utils.http.HttpUtils;
+import com.ruoyi.common.utils.spring.SpringUtils;
 import com.ruoyi.project.system.domain.SysUser;
 import com.ruoyi.project.system.service.ISysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.exception.CustomException;
@@ -25,9 +27,6 @@ import com.ruoyi.framework.manager.factory.AsyncFactory;
 import com.ruoyi.framework.redis.RedisCache;
 import com.ruoyi.framework.security.LoginUser;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * 登录校验方法
  *
@@ -39,7 +38,7 @@ public class SysLoginService {
     private TokenService tokenService;
 
     @Autowired
-    private ISysUserService userService;
+    private ISysUserService sysUserService;
 
     @Resource
     private AuthenticationManager authenticationManager;
@@ -88,22 +87,11 @@ public class SysLoginService {
         return tokenService.createToken(loginUser);
     }
 
-    public String ssoLogin(String code) {
-        //TODO getUserName
-//        https://g1openid.crcc.cn/oauth/token?grant_type=authorization_code&code=3Dc1jlqlr98deNFLImcFQw9Z&redirect_uri=http://hk.app.qiuqiuhetiantian.net
-
-        String tokenUrl = "https://g1openid.crcc.cn/oauth/token?grant_type=authorization_code&code=" + code + "&redirect_uri=http://hk.app.qiuqiuhetiantian.net";
-        String jsonToken = HttpRequest.get(tokenUrl).header("Authorization", "Basic ZGNkZW1vOmVldFNzQ3lqS0NyaXBFN2doRzhBN3FKMzhIVm96Q3BvZ2xKN3VRQ0M=").execute().body();
-        String accessToken = JSON.parseObject(jsonToken).getString("access_token");
-
-        String userInfoUrl = "https://g1openid.crcc.cn/oauth/userinfo";
-        String jsonUserInfo = HttpRequest.get(userInfoUrl).header("Authorization", "Bearer " + accessToken).execute().body();
-        String name = JSON.parseObject(jsonUserInfo).getString("name");
-        String[] arr = name.split("|");
-        String mappingId = arr[1];
-        SysUser sysUser = userService.selectUserByMappingId(mappingId);
-        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getPassword()));
+    public String ssoLogin(String username) {
+        SysUser sysUser = sysUserService.selectUserByUserName(username);
+        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username,sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
+        System.out.println(JSON.toJSONString(loginUser));
         // 生成token
         return tokenService.createToken(loginUser);
     }

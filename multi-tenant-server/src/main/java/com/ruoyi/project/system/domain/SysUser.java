@@ -101,6 +101,9 @@ public class SysUser extends BaseEntity
 
     private String comId;
 
+    private String mappingId;
+    private String mappingPwd;
+
     /**
      * 是否超级管理员
      */
@@ -339,6 +342,22 @@ public class SysUser extends BaseEntity
     public void setPostIds(Long[] postIds)
     {
         this.postIds = postIds;
+    }
+
+    public String getMappingId() {
+        return mappingId;
+    }
+
+    public void setMappingId(String mappingId) {
+        this.mappingId = mappingId;
+    }
+
+    public String getMappingPwd() {
+        return mappingPwd;
+    }
+
+    public void setMappingPwd(String mappingPwd) {
+        this.mappingPwd = mappingPwd;
     }
 
     @Override
