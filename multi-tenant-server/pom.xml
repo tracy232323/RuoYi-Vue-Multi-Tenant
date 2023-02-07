@@ -165,6 +165,13 @@
 			<version>${jwt.version}</version>
 		</dependency>
 
+        <!-- hutool  -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.7.20</version>
+        </dependency>
+
 		<!--阿里云短信-->
 		<dependency>
 			<groupId>com.aliyun</groupId>

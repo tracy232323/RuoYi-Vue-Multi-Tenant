@@ -61,7 +61,7 @@ public class SysLoginController
     {
         AjaxResult ajax = AjaxResult.success();
         // 生成令牌
-        String token = loginService.ssoLogin(loginBody.getUsername());
+        String token = loginService.ssoLogin(loginBody.getCode());
         ajax.put(Constants.TOKEN, token);
         return ajax;
     }
