@@ -67,7 +67,7 @@ public class SysUserServiceImpl implements ISysUserService {
 
     @Override
     public SysUser selectUserByMappingId(String mappingId) {
-        return null;
+        return userMapper.selectUserByMappingId(mappingId);
     }
 
     /**
