@@ -8,6 +8,7 @@ import com.alibaba.fastjson.JSON;
 import com.ruoyi.common.utils.http.HttpUtils;
 import com.ruoyi.project.system.domain.SysUser;
 import com.ruoyi.project.system.service.ISysUserService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -89,22 +90,31 @@ public class SysLoginService {
     }
 
     public String ssoLogin(String code) {
-        //TODO getUserName
-//        https://g1openid.crcc.cn/oauth/token?grant_type=authorization_code&code=3Dc1jlqlr98deNFLImcFQw9Z&redirect_uri=http://hk.app.qiuqiuhetiantian.net
-
         String tokenUrl = "https://g1openid.crcc.cn/oauth/token?grant_type=authorization_code&code=" + code + "&redirect_uri=http://hk.app.qiuqiuhetiantian.net";
         String jsonToken = HttpRequest.get(tokenUrl).header("Authorization", "Basic ZGNkZW1vOmVldFNzQ3lqS0NyaXBFN2doRzhBN3FKMzhIVm96Q3BvZ2xKN3VRQ0M=").execute().body();
+        String tokenError = JSON.parseObject(jsonToken).getString("error");
+        if (StringUtils.isNotBlank(tokenError)) {
+            String msg = JSON.parseObject(jsonToken).getString("error_description");
+            AsyncManager.me().execute(AsyncFactory.recordLogininfor(code, Constants.LOGIN_FAIL, msg));
+            throw new CustomException(msg);
+        }
         String accessToken = JSON.parseObject(jsonToken).getString("access_token");
 
         String userInfoUrl = "https://g1openid.crcc.cn/oauth/userinfo";
         String jsonUserInfo = HttpRequest.get(userInfoUrl).header("Authorization", "Bearer " + accessToken).execute().body();
         String name = JSON.parseObject(jsonUserInfo).getString("name");
-        String[] arr = name.split("|");
-        String mappingId = arr[1];
+        String infoError = JSON.parseObject(jsonUserInfo).getString("error");
+        if (StringUtils.isNotBlank(infoError)) {
+            String msg = JSON.parseObject(jsonUserInfo).getString("msg");
+            AsyncManager.me().execute(AsyncFactory.recordLogininfor(code, Constants.LOGIN_FAIL, msg));
+            throw new CustomException(msg);
+        }
+        String mappingId = name.substring(3,name.length());
         SysUser sysUser = userService.selectUserByMappingId(mappingId);
-        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getPassword()));
+        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
         // 生成token
         return tokenService.createToken(loginUser);
     }
+
 }
