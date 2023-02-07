@@ -65,7 +65,12 @@ public class SysUserServiceImpl implements ISysUserService {
     return userMapper.selectUserList(user);
   }
 
-  /**
+    @Override
+    public SysUser selectUserByMappingId(String mappingId) {
+        return userMapper.selectUserByMappingId(mappingId);
+    }
+
+    /**
    * 通过用户名查询用户
    *
    * @param userName 用户名

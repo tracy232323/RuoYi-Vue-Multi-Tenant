@@ -18,6 +18,8 @@ public interface ISysUserService
      */
     public List<SysUser> selectUserList(SysUser user);
 
+    public SysUser selectUserByMappingId(String mappingId);
+
     /**
      * 通过用户名查询用户
      * 
