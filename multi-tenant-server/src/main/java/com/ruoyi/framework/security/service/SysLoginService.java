@@ -113,6 +113,7 @@ public class SysLoginService {
         SysUser sysUser = userService.selectUserByMappingId(mappingId);
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
+        AsyncManager.me().execute(AsyncFactory.recordLogininfor(sysUser.getUserName(), Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
         // 生成token
         return tokenService.createToken(loginUser);
     }
