@@ -1,6 +1,5 @@
 package com.ruoyi.demo.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.mapper.NodeInfoMapper;
@@ -12,8 +11,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2023-02-07 14:37:12
 */
 @Service
-public class NodeInfoServiceImpl extends ServiceImpl<NodeInfoMapper, NodeInfo>
-    implements NodeInfoService{
+public class NodeInfoServiceImpl implements NodeInfoService{
 
 }
 

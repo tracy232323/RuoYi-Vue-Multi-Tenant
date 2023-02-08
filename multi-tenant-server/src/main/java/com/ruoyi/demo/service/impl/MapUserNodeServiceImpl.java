@@ -1,9 +1,7 @@
 package com.ruoyi.demo.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.ruoyi.demo.domain.MapUserNode;
+
 import com.ruoyi.demo.service.MapUserNodeService;
-import com.ruoyi.demo.mapper.MapUserNodeMapper;
 import org.springframework.stereotype.Service;
 
 /**
@@ -12,8 +10,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2023-02-07 14:38:28
 */
 @Service
-public class MapUserNodeServiceImpl extends ServiceImpl<MapUserNodeMapper, MapUserNode>
-    implements MapUserNodeService{
+public class MapUserNodeServiceImpl implements MapUserNodeService{
 
 }
 

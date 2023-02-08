@@ -1,7 +1,5 @@
 package com.ruoyi.demo.mapper;
 
-import com.ruoyi.demo.domain.NodeInfo;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,7 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 * @Entity com.ruoyi.demo.domain.NodeInfo
 */
 @Mapper
-public interface NodeInfoMapper extends BaseMapper<NodeInfo> {
+public interface NodeInfoMapper {
+
+
 
 }
 
