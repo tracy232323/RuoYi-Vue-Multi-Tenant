@@ -29,8 +29,7 @@ public class ApiOperationUtil {
     /**
      * 采用懒汉子模式，只有在第一次获取以及过期的时候才会去更新token
      */
-    public static String accessToken ;
-
+    public static String accessToken;
     /**
      * 获取token接口
      * @param url 获取token url
@@ -88,10 +87,10 @@ public class ApiOperationUtil {
      * @param url 获取所有的二级组织下机构集合url
      * @return
      */
-    public String getOrganizationChildren(String url,String providerId, String companyId){
+    public String getOrganizationChildren(String url,String providerId, Integer companyId){
         // 替换url中的指定参数
         url = url.replace(ApiOperationConstant.PROVIDER_ID, providerId);
-        url = url.replace(ApiOperationConstant.COMPANY_ID,companyId);
+        url = url.replace(ApiOperationConstant.COMPANY_ID,companyId.toString());
         HttpResponse execute = HttpRequest.get(url)
                 .header(ApiOperationConstant.AUTHORIZATION, "Bearer " + accessToken)
                 .execute();
