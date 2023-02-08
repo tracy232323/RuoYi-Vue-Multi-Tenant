@@ -29,6 +29,7 @@ public class ApiOperationConstant {
     public static final String USER_ID = "{userId}";
     public static final String DEPT_ID = "{deptId}";
     public static final Integer TYPE_POSITION = 3;
+    public static final Integer TYPE_DEPT = 2;
 
     public static final String GET_POSITION_ALL_USER_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/position/{positionId}/users";
     public static final String GET_COMPANY_ALL_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/company/{orgId}/children";
