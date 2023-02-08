@@ -24,5 +24,17 @@ public class ApiOperationConstant {
     public static final String GET_ORGANIZATION_CHILDREN_URL = "https://hrapitest.crcc.cn/api/hr/tree/{providerId}/{companyId}";
     public static final String PROVIDER_ID = "{providerId}";
     public static final String COMPANY_ID = "{companyId}";
+    public static final String POSITION_ID = "{positionId}";
+    public static final String ORG_ID = "{orgId}";
+    public static final String USER_ID = "{userId}";
+    public static final String DEPT_ID = "{deptId}";
     public static final Integer TYPE_POSITION = 3;
+
+    public static final String GET_POSITION_ALL_USER_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/position/{positionId}/users";
+    public static final String GET_COMPANY_ALL_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/company/{orgId}/children";
+    public static final String GET_USER_ALL_POSITION_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/user/{userId}/positions";
+    public static final String GET_DEPT_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/department/{deptId}/children";
+    public static final String GET_POSITION_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/position/{positionId}/parent";
+    public static final String GET_ORG_PATH_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/path/{orgId}";
+
 }
