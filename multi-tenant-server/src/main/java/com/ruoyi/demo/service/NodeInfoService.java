@@ -2,6 +2,8 @@ package com.ruoyi.demo.service;
 
 import com.ruoyi.demo.domain.NodeInfo;
 
+import java.util.List;
+
 
 /**
 * @author codedan
@@ -10,5 +12,6 @@ import com.ruoyi.demo.domain.NodeInfo;
 */
 public interface NodeInfoService  {
 
+    public Integer insertBatch(List<NodeInfo> list);
 
 }

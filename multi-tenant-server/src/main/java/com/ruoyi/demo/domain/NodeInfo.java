@@ -45,7 +45,9 @@ public class NodeInfo implements Serializable {
     /**
      * 根节点的独特id
      */
-    private String mainId;
+    private String providerId;
+
+    private String nodeId;
 
     /**
      * 创建时间

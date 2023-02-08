@@ -1,6 +1,9 @@
 package com.ruoyi.demo.mapper;
 
+import com.ruoyi.demo.domain.NodeInfo;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 /**
 * @author codedan
@@ -11,7 +14,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface NodeInfoMapper {
 
-
+    public Integer insertBatch(List<NodeInfo> list);
 
 }
 

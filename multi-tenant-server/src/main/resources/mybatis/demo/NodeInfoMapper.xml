@@ -5,15 +5,16 @@
 <mapper namespace="com.ruoyi.demo.mapper.NodeInfoMapper">
 
     <resultMap id="BaseResultMap" type="com.ruoyi.demo.domain.NodeInfo">
-            <id property="id" column="id" jdbcType="INTEGER"/>
-            <result property="type" column="type" jdbcType="INTEGER"/>
-            <result property="fatherId" column="father_id" jdbcType="INTEGER"/>
-            <result property="name" column="name" jdbcType="VARCHAR"/>
-            <result property="order" column="order" jdbcType="INTEGER"/>
-            <result property="mainId" column="main_id" jdbcType="VARCHAR"/>
-            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
-            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
-            <result property="deleted" column="deleted" jdbcType="INTEGER"/>
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="type" column="type" jdbcType="INTEGER"/>
+        <result property="fatherId" column="father_id" jdbcType="INTEGER"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="order" column="order" jdbcType="INTEGER"/>
+        <result property="providerId" column="provider_id" jdbcType="VARCHAR"/>
+        <result property="nodeId" column="node_id" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="deleted" column="deleted" jdbcType="INTEGER"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -21,4 +22,33 @@
         name,order,main_id,
         update_time,create_time,deleted
     </sql>
+
+    <insert id="insertBatch">
+        INSERT INTO node_info (
+        id,
+        type,
+        father_id,
+        node_id,
+        name,
+        `order`,
+        provider_id,
+        update_time,
+        create_time,
+        deleted
+        ) VALUES
+        <foreach collection="list" item="node" separator=",">
+            (
+            #{node.id},
+            #{node.type},
+            #{node.fatherId},
+            #{node.nodeId},
+            #{node.name},
+            #{node.order},
+            #{node.providerId},
+            #{node.updateTime},
+            #{node.createTime},
+            #{node.deleted}
+            )
+        </foreach>
+    </insert>
 </mapper>
