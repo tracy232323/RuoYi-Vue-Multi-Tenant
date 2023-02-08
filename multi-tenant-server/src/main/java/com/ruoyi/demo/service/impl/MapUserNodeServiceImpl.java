@@ -1,8 +1,13 @@
 package com.ruoyi.demo.service.impl;
 
 
+import com.ruoyi.demo.domain.MapUserNode;
+import com.ruoyi.demo.mapper.MapUserNodeMapper;
 import com.ruoyi.demo.service.MapUserNodeService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
 * @author codedan
@@ -11,7 +16,13 @@ import org.springframework.stereotype.Service;
 */
 @Service
 public class MapUserNodeServiceImpl implements MapUserNodeService{
+    @Autowired
+    private MapUserNodeMapper mapUserNodeMapper;
 
+    @Override
+    public Integer insertBatch(List<MapUserNode> list) {
+        return mapUserNodeMapper.insertBatch(list);
+    }
 }
 
 

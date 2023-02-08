@@ -2,13 +2,20 @@ package com.ruoyi.demo.domain;
 
 import java.io.Serializable;
 import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 用户与节点映射的节点权限表
  * @TableName map_user_node
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class MapUserNode implements Serializable {
     /**
      * 用户与节点映射id

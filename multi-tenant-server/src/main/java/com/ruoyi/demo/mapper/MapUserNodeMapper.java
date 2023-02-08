@@ -1,6 +1,9 @@
 package com.ruoyi.demo.mapper;
 
+import com.ruoyi.demo.domain.MapUserNode;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 /**
 * @author codedan
@@ -10,7 +13,7 @@ import org.apache.ibatis.annotations.Mapper;
 */
 @Mapper
 public interface MapUserNodeMapper{
-
+    public Integer insertBatch(List<MapUserNode> list);
 }
 
 
