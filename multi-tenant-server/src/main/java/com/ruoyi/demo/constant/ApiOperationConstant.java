@@ -30,12 +30,20 @@ public class ApiOperationConstant {
     public static final String DEPT_ID = "{deptId}";
     public static final Integer TYPE_POSITION = 3;
     public static final Integer TYPE_DEPT = 2;
-
     public static final String GET_POSITION_ALL_USER_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/position/{positionId}/users";
     public static final String GET_COMPANY_ALL_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/company/{orgId}/children";
     public static final String GET_USER_ALL_POSITION_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/user/{userId}/positions";
     public static final String GET_DEPT_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/department/{deptId}/children";
     public static final String GET_POSITION_ORG_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/position/{positionId}/parent";
     public static final String GET_ORG_PATH_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/path/{orgId}";
+    public static final String AUTHORITY_MANAGER = "manager";
+    public static final String AUTHORITY_SHOW = "show";
+    public static final String AUTHORITY_ALL = "all";
 
+    public static final String AUTHORITY_NOT_ALL = "all";
+    public static final Integer AUTHORITY_MANAGER_VALUE = 1;
+    public static final Integer AUTHORITY_SHOW_VALUE = 1;
+
+    public static final Integer AUTHORITY_NOT_MANAGER_VALUE = 0;
+    public static final Integer AUTHORITY_NOT_SHOW_VALUE = 0;
 }

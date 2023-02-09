@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
  * 组织树节点表
@@ -71,5 +73,25 @@ public class NodeInfo implements Serializable {
         this.order = order;
         this.providerId = providerId;
         this.nodeId = nodeId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        NodeInfo nodeInfo = (NodeInfo) o;
+
+        return new EqualsBuilder().append(type, nodeInfo.type).append(fatherId, nodeInfo.fatherId).append(name, nodeInfo.name).append(order, nodeInfo.order).append(providerId, nodeInfo.providerId).append(nodeId, nodeInfo.nodeId).isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37).append(type).append(fatherId).append(name).append(order).append(providerId).append(nodeId).toHashCode();
     }
 }
