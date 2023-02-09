@@ -3,6 +3,7 @@ package com.ruoyi;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.google.common.collect.Lists;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.domain.NodeInfo;
@@ -90,8 +91,15 @@ public class RunYiApplicationTest {
             getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, id);
             if (!tempList.isEmpty()) {
                 log.info("完成节点节点的数据集合:{}", id);
-                number += tempList.size();
+//                number += tempList.size();
 //                    nodeInfoService.saveBatch(tempList);
+                if (tempList.size() > 1000) {
+                    List<List<NodeInfo>> partitions = Lists.partition(tempList, 1000);
+                    for (List<NodeInfo> partition : partitions) {
+                        nodeInfoService.insertBatch(partition);
+                    }
+                }
+
             }
 //            }
         }
@@ -110,9 +118,9 @@ public class RunYiApplicationTest {
         nodes.add(nodeInfo);
         // 判断是否存在children，没有或者为数量为空，则返回上一层，有则进行数组JSON解析，并迭代
         String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
-        if (ObjectUtils.isEmpty(childrenJson)) {
-            log.info("---------------------------childeren-----------------");
-        }
+//        if (ObjectUtils.isEmpty(childrenJson)) {
+//            log.info("---------------------------childeren-----------------");
+//        }
         if (!"null".equals(childrenJson)) {
             List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
             for (JSONObject child : childrens) {

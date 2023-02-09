@@ -5,6 +5,7 @@ import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.mapper.NodeInfoMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class NodeInfoServiceImpl implements NodeInfoService{
     @Autowired
     private NodeInfoMapper nodeInfoMapper;
 
+    @Transactional
     @Override
     public Integer insertBatch(List<NodeInfo> list) {
         return nodeInfoMapper.insertBatch(list);
