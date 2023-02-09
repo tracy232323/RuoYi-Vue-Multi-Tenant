@@ -1,8 +1,8 @@
 package com.ruoyi.demo.controller;
 
 import com.ruoyi.demo.domain.request.ReqRootTree;
+import com.ruoyi.demo.domain.request.ReqUserAuth;
 import com.ruoyi.demo.service.DemoService;
-import com.ruoyi.framework.web.controller.BaseController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,5 +18,10 @@ public class DemoController {
     @PostMapping("/getOringTree")
     public String getOringTree(@RequestBody ReqRootTree reqRootTree) {
         return demoService.getOringTree(reqRootTree);
+    }
+
+    @PostMapping("/addAuthUser")
+    public String addAuthUser(@RequestBody ReqUserAuth reqUserAuth) {
+        return null;
     }
 }

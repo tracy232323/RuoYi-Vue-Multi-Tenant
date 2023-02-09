@@ -31,10 +31,10 @@
         node_id,
         name,
         `order`,
-        provider_id,
-        update_time,
-        create_time,
-        deleted
+        provider_id
+--         update_time,
+--         create_time,
+--         deleted
         ) VALUES
         <foreach collection="list" item="node" separator=",">
             (
@@ -44,10 +44,10 @@
             #{node.nodeId},
             #{node.name},
             #{node.order},
-            #{node.providerId},
-            #{node.updateTime},
-            #{node.createTime},
-            #{node.deleted}
+            #{node.providerId}
+--             #{node.updateTime},
+--             #{node.createTime},
+--             #{node.deleted}
             )
         </foreach>
     </insert>
@@ -66,6 +66,24 @@
         deleted
          FROM node_info
     </select>
+
+
+    <select id="selectOne" resultMap="BaseResultMap">
+        SELECT
+        id,
+        type,
+        father_id,
+        node_id,
+        name,
+        `order`,
+        provider_id,
+        update_time,
+        create_time,
+        deleted
+         FROM node_info
+         WHERE provider_id = #{providerId} and node_id = #{nodeId}
+    </select>
+
 
     <select id="selectByMap" resultMap="BaseResultMap">
         SELECT

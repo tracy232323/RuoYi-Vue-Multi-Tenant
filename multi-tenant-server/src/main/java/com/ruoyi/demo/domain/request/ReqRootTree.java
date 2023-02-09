@@ -3,8 +3,10 @@ package com.ruoyi.demo.domain.request;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class ReqRootTree {
+public class ReqRootTree implements Serializable {
     @ApiModelProperty("类型 1：单位 2：部门 3：岗位")
     public Integer type;
 

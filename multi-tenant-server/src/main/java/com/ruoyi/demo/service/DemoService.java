@@ -1,7 +1,10 @@
 package com.ruoyi.demo.service;
 
 import com.ruoyi.demo.domain.request.ReqRootTree;
+import com.ruoyi.demo.domain.request.ReqUserAuth;
 
 public interface DemoService {
     String getOringTree(ReqRootTree reqRootTree);
+
+    void addAuthUser(ReqUserAuth reqUserAuth);
 }

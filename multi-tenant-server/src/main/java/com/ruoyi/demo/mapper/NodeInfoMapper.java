@@ -22,6 +22,8 @@ public interface NodeInfoMapper {
     public List<NodeInfo> selectByMap(@Param("companyId") String companyId, @Param("userId") Integer userId);
 
     void deleteByIds(@Param("ids") List<Integer> ids);
+
+    public NodeInfo selectOne(@Param("providerId") String providerId, @Param("nodeId") Integer nodeId);
 }
 
 

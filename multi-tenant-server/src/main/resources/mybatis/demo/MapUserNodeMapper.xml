@@ -29,10 +29,10 @@
         company_id,
         node_id,
         is_manage,
-        is_show,
-        update_time,
-        create_time,
-        deleted
+        is_show
+--         update_time,
+--         create_time,
+--         deleted
         ) VALUES
         <foreach collection="list" item="node" separator=",">
             (
@@ -41,10 +41,10 @@
             #{node.companyId},
             #{node.nodeId},
             #{node.isManage},
-            #{node.isShow},
-            #{node.updateTime},
-            #{node.createTime},
-            #{node.deleted}
+            #{node.isShow}
+--             #{node.updateTime},
+--             #{node.createTime},
+--             #{node.deleted}
             )
         </foreach>
     </insert>
