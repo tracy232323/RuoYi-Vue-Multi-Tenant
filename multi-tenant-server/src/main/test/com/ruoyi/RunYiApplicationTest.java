@@ -68,75 +68,7 @@ public class RunYiApplicationTest {
     private NodeInfoService nodeInfoService;
 
     @Test
-    public void init() {
-        int number = 0;
-        apiOperationUtil.getAccessToken(
-                ApiOperationConstant.GET_ACCESS_TOKEN_URL,
-                ApiOperationConstant.CLIENT_CREDENTIALS,
-                ApiOperationConstant.CLIENT_ID,
-                ApiOperationConstant.CLIENT_SECRET);
-        //TODO: 简单逻辑处理，后期待优化
-//        List<NodeInfo> nodeList = nodeInfoService.list();
-//        if( nodeList.isEmpty() ){
-        // 开始解析组织树
-        String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
-        List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
-        for (JSONObject organizationInfo : organizationInfos) {
-            List<NodeInfo> tempList = new ArrayList<NodeInfo>();
-            String providerId = organizationInfo.get("id").toString();
-            JSONObject root = new JSONObject(organizationInfo.get("root"));
-            Integer id = Integer.parseInt(root.get("id").toString());
-            String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, providerId, id);
-            // 进入递归收集
-            getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, id);
-            if (!tempList.isEmpty()) {
-                log.info("完成节点节点的数据集合:{}", id);
-//                number += tempList.size();
-//                    nodeInfoService.saveBatch(tempList);
-                if (tempList.size() > 1000) {
-                    List<List<NodeInfo>> partitions = Lists.partition(tempList, 1000);
-                    for (List<NodeInfo> partition : partitions) {
-                        nodeInfoService.insertBatch(partition);
-                    }
-                }
 
-            }
-//            }
-        }
-        log.info("number:{}", number);
-    }
-
-    public void getOrganizationChildren(List<NodeInfo> nodes, JSONObject data, String providerId, Integer id) {
-        boolean key = data.containsKey(NodeFieldConstant.CHILDREN_FIELD_NAME);
-        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
-        if (!key || ApiOperationConstant.TYPE_POSITION.equals(type)) {
-            return;
-        }
-        // 提取字段组成NodeInfo
-        NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
-        // 写入nodes中
-        nodes.add(nodeInfo);
-        // 判断是否存在children，没有或者为数量为空，则返回上一层，有则进行数组JSON解析，并迭代
-        String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
-//        if (ObjectUtils.isEmpty(childrenJson)) {
-//            log.info("---------------------------childeren-----------------");
-//        }
-        if (!"null".equals(childrenJson)) {
-            List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
-            for (JSONObject child : childrens) {
-                getOrganizationChildren(nodes, child, providerId, id);
-            }
-        }
-    }
-
-    public NodeInfo buildNodeInfoByJSON(JSONObject data, String providerId, Integer fatherId) {
-        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
-        Integer id = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
-        String name = data.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
-        Integer order = data.get(NodeFieldConstant.ORDER_FIELD_NAME, Integer.class);
-        NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
-        return nodeInfo;
-    }
 
     public List<NodeInfo> getAnalogData() {
         List<NodeInfo> nodeInfos = new ArrayList<>();
@@ -156,6 +88,7 @@ public class RunYiApplicationTest {
         nodeInfos.add(nodeInfo3_2);
         return nodeInfos;
     }
+
     @Test
     public void buildShowTree() {
         // 查询当前用户所在岗位集合
@@ -172,32 +105,32 @@ public class RunYiApplicationTest {
             allNodeInfoMap.put(next.getNodeId(), next);
         }
         Integer rootNodeId = 0;
-        if( analogData.size() >= 1 ){
+        if (analogData.size() >= 1) {
             NodeInfo nodeInfo = analogData.get(0);
             rootNodeId = getRootNodeId(allNodeInfoMap, nodeInfo.getNodeId());
         }
         Map<Integer, TreeNode> nodeInfoMap = new HashMap<Integer, TreeNode>();
         for (NodeInfo nodeInfo : analogData) {
-            buildShowTree(allNodeInfoMap,nodeInfoMap,nodeInfo.getNodeId());
+            buildShowTree(allNodeInfoMap, nodeInfoMap, nodeInfo.getNodeId());
         }
         TreeNode treeNode = nodeInfoMap.get(rootNodeId);
-        log.info("Root:{}",JSONUtil.toJsonStr(treeNode));
+        log.info("Root:{}", JSONUtil.toJsonStr(treeNode));
 //        return JSONUtil.toJsonStr(treeNode);
     }
 
-    public Integer getRootNodeId(HashMap<Integer, NodeInfo> allNodeInfoMap,Integer id) {
+    public Integer getRootNodeId(HashMap<Integer, NodeInfo> allNodeInfoMap, Integer id) {
         NodeInfo nodeInfo = allNodeInfoMap.get(id);
-        if( NodeFieldConstant.ROOT_NODE.equals(nodeInfo.getFatherId()) ){
+        if (NodeFieldConstant.ROOT_NODE.equals(nodeInfo.getFatherId())) {
             return nodeInfo.getNodeId();
         }
-        return getRootNodeId(allNodeInfoMap,nodeInfo.getFatherId());
+        return getRootNodeId(allNodeInfoMap, nodeInfo.getFatherId());
     }
 
     public void buildShowTree(HashMap<Integer, NodeInfo> allNodeInfoMap, Map<Integer, TreeNode> nodeInfoMap, Integer id) {
         NodeInfo nodeInfo = allNodeInfoMap.get(id);
         Integer fatherId = nodeInfo.getFatherId();
         // 定义递归的出口( 当节点的父亲节点为0或者在nodeInfoMap中已存在 )
-        if ( nodeInfoMap.containsKey(id) ){
+        if (nodeInfoMap.containsKey(id)) {
             return;
         }
         if (NodeFieldConstant.ROOT_NODE.equals(fatherId)) {
@@ -211,7 +144,7 @@ public class RunYiApplicationTest {
         treeNode.setNodeInfo(nodeInfo);
         nodeInfoMap.put(nodeInfo.getNodeId(), treeNode);
         // 获取父亲节点
-        buildShowTree(allNodeInfoMap,nodeInfoMap,fatherId);
+        buildShowTree(allNodeInfoMap, nodeInfoMap, fatherId);
         TreeNode fatherNode = nodeInfoMap.get(fatherId);
         fatherNode.getChildren().add(treeNode);
     }
