@@ -126,7 +126,7 @@ public class RunYiApplicationTest {
         Integer id = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
         String name = data.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
         Integer order = data.get(NodeFieldConstant.ORDER_FIELD_NAME, Integer.class);
-        NodeInfo nodeInfo = NodeInfo.builder().type(type).id(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
+        NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
         return nodeInfo;
     }
 
