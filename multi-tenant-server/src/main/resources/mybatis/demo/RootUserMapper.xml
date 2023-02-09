@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.demo.mapper.RootUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.ruoyi.demo.domain.RootUser">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="providerId" column="provider_id" jdbcType="VARCHAR"/>
+        <result property="userId" column="user_id" jdbcType="INTEGER"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="deleted" column="deleted" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO root_user (
+            id,
+            user_id,
+            provider_id,
+            update_time,
+            create_time,
+            deleted
+        ) VALUES
+            (
+            #{id},
+            #{userId},
+            #{providerId},
+            #{updateTime},
+            #{createTime},
+            #{deleted}
+            )
+    </insert>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+            id,
+            user_id,
+            provider_id,
+            update_time,
+            create_time,
+            deleted
+        FROM root_user
+    </select>
+</mapper>

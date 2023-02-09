@@ -32,7 +32,7 @@ public class InitRootAuthorityConfig {
     @Autowired
     private NodeInfoService nodeInfoService;
 
-    @PostConstruct
+//    @PostConstruct
     public void init() {
         int number = 0;
         apiOperationUtil.getAccessToken(
