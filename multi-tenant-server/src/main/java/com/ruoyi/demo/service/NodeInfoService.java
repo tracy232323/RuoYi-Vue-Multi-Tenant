@@ -14,4 +14,6 @@ public interface NodeInfoService  {
 
     public Integer insertBatch(List<NodeInfo> list);
 
+    public List<NodeInfo> selectAll();
+
 }

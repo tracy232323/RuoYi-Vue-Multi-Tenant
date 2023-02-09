@@ -16,6 +16,7 @@ public interface NodeInfoMapper {
 
     public Integer insertBatch(List<NodeInfo> list);
 
+    public List<NodeInfo> selectAll();
 }
 
 

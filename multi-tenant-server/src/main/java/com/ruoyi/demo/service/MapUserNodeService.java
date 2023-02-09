@@ -11,4 +11,6 @@ import java.util.List;
 */
 public interface MapUserNodeService  {
     public Integer insertBatch(List<MapUserNode> list);
+
+    public List<MapUserNode> selectAll();
 }

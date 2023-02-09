@@ -24,6 +24,11 @@ public class NodeInfoServiceImpl implements NodeInfoService{
     public Integer insertBatch(List<NodeInfo> list) {
         return nodeInfoMapper.insertBatch(list);
     }
+
+    @Override
+    public List<NodeInfo> selectAll() {
+        return nodeInfoMapper.selectAll();
+    }
 }
 
 

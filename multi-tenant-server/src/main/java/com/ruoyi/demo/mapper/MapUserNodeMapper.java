@@ -14,6 +14,8 @@ import java.util.List;
 @Mapper
 public interface MapUserNodeMapper{
     public Integer insertBatch(List<MapUserNode> list);
+
+    public List<MapUserNode> selectAll();
 }
 
 

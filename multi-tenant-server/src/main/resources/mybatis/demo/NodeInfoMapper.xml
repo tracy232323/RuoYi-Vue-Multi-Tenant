@@ -51,4 +51,19 @@
             )
         </foreach>
     </insert>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        id,
+        type,
+        father_id,
+        node_id,
+        name,
+        `order`,
+        provider_id,
+        update_time,
+        create_time,
+        deleted
+         FROM node_info
+    </select>
 </mapper>

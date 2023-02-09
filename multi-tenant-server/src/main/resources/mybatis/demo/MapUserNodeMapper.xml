@@ -48,4 +48,18 @@
             )
         </foreach>
     </insert>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+            id,
+            user_id,
+            company_id,
+            node_id,
+            is_manage,
+            is_show,
+            update_time,
+            create_time,
+            deleted
+        FROM map_user_node
+    </select>
 </mapper>
