@@ -6,12 +6,16 @@ import cn.hutool.json.JSONUtil;
 import com.google.common.collect.Lists;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.constant.NodeFieldConstant;
+import com.ruoyi.demo.constant.RedisConstant;
 import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
+import com.ruoyi.demo.domain.RootUser;
 import com.ruoyi.demo.domain.TreeNode;
 import com.ruoyi.demo.service.MapUserNodeService;
 import com.ruoyi.demo.service.NodeInfoService;
+import com.ruoyi.demo.service.RootUserService;
 import com.ruoyi.demo.util.ApiOperationUtil;
+import com.ruoyi.framework.redis.RedisCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +44,12 @@ public class InitRootAuthorityConfig {
     @Autowired
     private MapUserNodeService mapUserNodeService;
 
+    @Autowired
+    private RootUserService rootUserService;
+
+    @Autowired
+    private RedisCache redisCache;
+
 //    @PostConstruct
     public void init() {
         apiOperationUtil.getAccessToken(
@@ -47,7 +57,6 @@ public class InitRootAuthorityConfig {
                 ApiOperationConstant.CLIENT_CREDENTIALS,
                 ApiOperationConstant.CLIENT_ID,
                 ApiOperationConstant.CLIENT_SECRET);
-        //TODO: 简单逻辑处理，后期待优化
         List<NodeInfo> nodeList = nodeInfoService.selectAll();
         String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
         List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
@@ -58,12 +67,17 @@ public class InitRootAuthorityConfig {
             Integer id = Integer.parseInt(root.get("id").toString());
             String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, providerId, id);
             // 进入递归收集
-            getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, id);
+            getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, 0);
         }
-        if (nodeList.isEmpty() && !tempList.isEmpty()) {
+        // 这里是存在逻辑。进行数据对比，获取不同的数据
+        // 差集 (list1 - list2)
+        List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
+        log.info("---得到差集 reduce1 (list1 - list2)---：{}", reduce1);
+        // 判断有没有新增节点，插入后进行有则进行权限授予，无则跳过
+        if (nodeList.isEmpty() && !reduce1.isEmpty()) {
             // 开始解析组织树
-            if (tempList.size() > 1000) {
-                List<List<NodeInfo>> partitions = Lists.partition(tempList, 1000);
+            if (reduce1.size() > 1000) {
+                List<List<NodeInfo>> partitions = Lists.partition(reduce1, 1000);
                 for (List<NodeInfo> partition : partitions) {
                     nodeInfoService.insertBatch(partition);
                 }
@@ -71,32 +85,34 @@ public class InitRootAuthorityConfig {
                 nodeInfoService.insertBatch(tempList);
             }
         }
-        //TODO:查询有多少个root账号
-
-
-        // 这里是存在逻辑。进行数据对比，获取不同的数据
-        // 差集 (list1 - list2)
-        List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
-        log.info("---得到差集 reduce1 (list1 - list2)---：{}",reduce1);
-        // 判断有没有新增节点，有则进行权限授予，无则跳过
-        // 给予Root账号全部节点的权限
-        if( !reduce1.isEmpty() ){
-
-            grantedPermissionsByNodeList("hr", 828046, ApiOperationConstant.AUTHORITY_MANAGER, reduce1);
-
+        // 查询有多少个root账号,就给他们都授权了
+        List<RootUser> rootUsers = rootUserService.selectAll();
+        for (RootUser rootUser : rootUsers) {
+            if (!reduce1.isEmpty()) {
+                grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, reduce1);
+            }
         }
-
+        // 看看需要删除多少节点
         // 差集 (list2 - list1)
         List<NodeInfo> reduce2 = nodeList.stream().filter(item -> !tempList.contains(item)).collect(Collectors.toList());
-        log.info("---得到差集 reduce2 (list2 - list1)---:{}",reduce2);
+        log.info("---得到差集 reduce2 (list2 - list1)---:{}", reduce2);
         // 判断有没有删减节点，有则进行授权删除以及节点删除，无则跳过
-        //TODO:等待删除接口
-
+        List<Integer> ids = reduce2.stream().map(NodeInfo::getId).collect(Collectors.toList());
+        if (!reduce2.isEmpty()) {
+            // 删除授权
+            mapUserNodeService.deleteByNodeIds(ids);
+            // 删除节点
+            nodeInfoService.deleteByIds(ids);
+        }
         // 第四步，根据Root账号去遍历出他们被授权的节点结合
-
-        // 第五步：根据此集合构建树结构
-//        String treeJson = buildShowTree();
-
+        for (RootUser rootUser : rootUsers) {
+            List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(rootUser.getProviderId(), rootUser.getUserId());
+            // 第五步：根据此集合构建树结构
+            String treeJSON = buildShowTree(nodeInfos);
+            // 第六步：存放redis即可
+            String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
+            redisCache.setCacheObject(key, treeJSON);
+        }
     }
 
     public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, List<NodeInfo> nodeInfos) {
@@ -153,7 +169,7 @@ public class InitRootAuthorityConfig {
         if (!"null".equals(childrenJson)) {
             List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
             for (JSONObject child : childrens) {
-                getOrganizationChildren(nodes, child, providerId, id);
+                getOrganizationChildren(nodes, child, providerId, nodeInfo.getNodeId());
             }
         }
     }

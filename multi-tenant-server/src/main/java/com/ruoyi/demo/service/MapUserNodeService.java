@@ -13,4 +13,6 @@ public interface MapUserNodeService  {
     public Integer insertBatch(List<MapUserNode> list);
 
     public List<MapUserNode> selectAll();
+
+    void deleteByNodeIds(List<Integer> ids);
 }

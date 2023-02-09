@@ -20,6 +20,8 @@ public interface NodeInfoMapper {
     public List<NodeInfo> selectAll();
 
     public List<NodeInfo> selectByMap(@Param("companyId") String companyId, @Param("userId") Integer userId);
+
+    void deleteByIds(@Param("ids") List<Integer> ids);
 }
 
 

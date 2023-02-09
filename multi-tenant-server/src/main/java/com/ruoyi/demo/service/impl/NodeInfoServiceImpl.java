@@ -3,6 +3,7 @@ package com.ruoyi.demo.service.impl;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.mapper.NodeInfoMapper;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,11 @@ public class NodeInfoServiceImpl implements NodeInfoService {
     @Override
     public List<NodeInfo> selectByMap(String companyId, Integer userId) {
         return nodeInfoMapper.selectByMap(companyId, userId);
+    }
+
+    @Override
+    public void deleteByIds(List<Integer> ids) {
+        nodeInfoMapper.deleteByIds(ids);
     }
 }
 

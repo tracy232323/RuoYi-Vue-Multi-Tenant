@@ -23,7 +23,7 @@
         update_time,create_time,deleted
     </sql>
 
-    <insert id="insertBatch">
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO node_info (
         id,
         type,
@@ -82,4 +82,13 @@
             AND user_id = #{userId}
         ) a  ON a.node_id = node_info.id
     </select>
+
+    <select id="deleteByIds" parameterType="Integer">
+        delete from node_info where id in
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </select>
+
+
 </mapper>

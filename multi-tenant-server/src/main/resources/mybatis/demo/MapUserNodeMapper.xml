@@ -62,4 +62,11 @@
             deleted
         FROM map_user_node
     </select>
+
+    <select id="deleteByNodeIds" parameterType="Integer">
+        delete from map_user_node where node_id in
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

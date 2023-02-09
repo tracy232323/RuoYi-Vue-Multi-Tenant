@@ -2,6 +2,7 @@ package com.ruoyi.demo.mapper;
 
 import com.ruoyi.demo.domain.MapUserNode;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -16,6 +17,8 @@ public interface MapUserNodeMapper{
     public Integer insertBatch(List<MapUserNode> list);
 
     public List<MapUserNode> selectAll();
+
+    void deleteByNodeIds(@Param("ids") List<Integer> ids);
 }
 
 

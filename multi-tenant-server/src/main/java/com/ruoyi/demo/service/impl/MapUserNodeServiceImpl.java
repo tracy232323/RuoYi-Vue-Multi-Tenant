@@ -30,6 +30,11 @@ public class MapUserNodeServiceImpl implements MapUserNodeService{
     public List<MapUserNode> selectAll() {
         return mapUserNodeMapper.selectAll();
     }
+
+    @Override
+    public void deleteByNodeIds(List<Integer> ids) {
+        mapUserNodeMapper.deleteByNodeIds(ids);
+    }
 }
 
 
