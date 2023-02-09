@@ -75,7 +75,6 @@ public class ApiOperationUtil {
         int status = execute.getStatus();
         if (status == HttpStatusConstant.OK) {
             String result = execute.body();
-            log.info(result);
             return result;
         } else if (status == HttpStatusConstant.Unauthorized) {
             accessToken = null;
@@ -104,7 +103,6 @@ public class ApiOperationUtil {
         int status = execute.getStatus();
         if (status == HttpStatusConstant.OK) {
             String result = execute.body();
-            log.info(result);
             return result;
         } else if (status == HttpStatusConstant.Unauthorized) {
             accessToken = null;

@@ -47,7 +47,7 @@ public class NodeInfo implements Serializable {
      */
     private String providerId;
 
-    private String nodeId;
+    private Integer nodeId;
 
     /**
      * 创建时间
@@ -63,4 +63,13 @@ public class NodeInfo implements Serializable {
      * 逻辑删除
      */
     private Integer deleted;
+
+    public NodeInfo(Integer nodeId,Integer type, Integer fatherId, String name, Integer order, String providerId) {
+        this.type = type;
+        this.fatherId = fatherId;
+        this.name = name;
+        this.order = order;
+        this.providerId = providerId;
+        this.nodeId = nodeId;
+    }
 }
