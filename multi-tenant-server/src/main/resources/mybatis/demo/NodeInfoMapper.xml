@@ -66,4 +66,20 @@
         deleted
          FROM node_info
     </select>
+
+    <select id="selectByMap" resultMap="BaseResultMap">
+        SELECT
+            node_info.*
+        FROM
+            node_info
+        RIGHT JOIN (
+            SELECT
+                node_id
+            FROM
+                map_user_node
+            WHERE
+                company_id = #{companyId}
+            AND user_id = #{userId}
+        ) a  ON a.node_id = node_info.id
+    </select>
 </mapper>

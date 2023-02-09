@@ -10,12 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
-* @author codedan
-* @description 针对表【node_info(组织树节点表)】的数据库操作Service实现
-* @createDate 2023-02-07 14:37:12
-*/
+ * @author codedan
+ * @description 针对表【node_info(组织树节点表)】的数据库操作Service实现
+ * @createDate 2023-02-07 14:37:12
+ */
 @Service
-public class NodeInfoServiceImpl implements NodeInfoService{
+public class NodeInfoServiceImpl implements NodeInfoService {
     @Autowired
     private NodeInfoMapper nodeInfoMapper;
 
@@ -28,6 +28,11 @@ public class NodeInfoServiceImpl implements NodeInfoService{
     @Override
     public List<NodeInfo> selectAll() {
         return nodeInfoMapper.selectAll();
+    }
+
+    @Override
+    public List<NodeInfo> selectByMap(String companyId, Integer userId) {
+        return nodeInfoMapper.selectByMap(companyId, userId);
     }
 }
 
