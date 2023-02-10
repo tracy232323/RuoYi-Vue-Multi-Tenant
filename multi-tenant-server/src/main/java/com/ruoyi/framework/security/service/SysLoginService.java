@@ -6,6 +6,7 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
 import com.ruoyi.common.utils.http.HttpUtils;
+import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.project.system.domain.SysUser;
 import com.ruoyi.project.system.service.ISysUserService;
 import org.apache.commons.lang3.StringUtils;
@@ -109,11 +110,13 @@ public class SysLoginService {
             AsyncManager.me().execute(AsyncFactory.recordLogininfor(code, Constants.LOGIN_FAIL, msg));
             throw new CustomException(msg);
         }
-        String mappingId = name.substring(3,name.length());
+        String[] arr = name.split("\\|");
+        String mappingId = arr[1];
         SysUser sysUser = userService.selectUserByMappingId(mappingId);
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(sysUser.getUserName(), Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
+        redisCache.setCacheObject(sysUser.getUserName(),name);
         // 生成token
         return tokenService.createToken(loginUser);
     }

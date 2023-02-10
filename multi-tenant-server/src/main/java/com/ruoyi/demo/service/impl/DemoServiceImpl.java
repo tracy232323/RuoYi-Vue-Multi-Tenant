@@ -6,7 +6,6 @@ import com.ruoyi.common.exception.CustomException;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
-import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.constant.RedisConstant;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
@@ -29,7 +28,6 @@ import java.util.List;
 
 import org.springframework.util.StringUtils;
 
-import java.util.stream.Collectors;
 
 @Service
 public class DemoServiceImpl implements DemoService {
@@ -81,7 +79,6 @@ public class DemoServiceImpl implements DemoService {
                     .userId(userAuth.getUserId())
                     .companyId(userAuth.getProviderId())
                     .nodeId(nodeInfo.getId())
-                    .path(path)
                     .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
                     .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
                     .build();
@@ -155,4 +152,11 @@ public class DemoServiceImpl implements DemoService {
         }
         return str.toString();
     }
+
+    @Override
+    public void getNodeAllUser(ReqRootTree reqRootTree) {
+//        String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
+//        String path = buildUserPathFromTree(orgPath);
+    }
+
 }

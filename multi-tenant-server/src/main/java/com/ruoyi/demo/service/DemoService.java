@@ -28,4 +28,6 @@ public interface DemoService {
      * @param nodeId
      */
     List<MapUserNode> getNodeMap(String providerId, Integer nodeId);
+
+    void getNodeAllUser(ReqRootTree reqRootTree);
 }

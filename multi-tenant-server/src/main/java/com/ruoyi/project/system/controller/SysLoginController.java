@@ -2,6 +2,9 @@ package com.ruoyi.project.system.controller;
 
 import java.util.List;
 import java.util.Set;
+
+import com.ruoyi.demo.constant.ApiOperationConstant;
+import com.ruoyi.framework.redis.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,12 +24,11 @@ import com.ruoyi.project.system.service.ISysMenuService;
 
 /**
  * 登录验证
- * 
+ *
  * @author ruoyi
  */
 @RestController
-public class SysLoginController
-{
+public class SysLoginController {
     @Autowired
     private SysLoginService loginService;
 
@@ -39,15 +41,17 @@ public class SysLoginController
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private RedisCache redisCache;
+
     /**
      * 登录方法
-     * 
+     *
      * @param loginBody 登陆信息
      * @return 结果
      */
     @PostMapping("/login")
-    public AjaxResult login(@RequestBody LoginBody loginBody)
-    {
+    public AjaxResult login(@RequestBody LoginBody loginBody) {
         AjaxResult ajax = AjaxResult.success();
         // 生成令牌
         String token = loginService.login(loginBody.getUsername(), loginBody.getPassword(), loginBody.getCode(),
@@ -57,8 +61,7 @@ public class SysLoginController
     }
 
     @PostMapping("/ssoLogin")
-    public AjaxResult ssoLogin(@RequestBody LoginBody loginBody)
-    {
+    public AjaxResult ssoLogin(@RequestBody LoginBody loginBody) {
         AjaxResult ajax = AjaxResult.success();
         // 生成令牌
         String token = loginService.ssoLogin(loginBody.getCode());
@@ -68,12 +71,11 @@ public class SysLoginController
 
     /**
      * 获取用户信息
-     * 
+     *
      * @return 用户信息
      */
     @GetMapping("getInfo")
-    public AjaxResult getInfo()
-    {
+    public AjaxResult getInfo() {
         LoginUser loginUser = tokenService.getLoginUser(ServletUtils.getRequest());
         SysUser user = loginUser.getUser();
         // 角色集合
@@ -84,17 +86,23 @@ public class SysLoginController
         ajax.put("user", user);
         ajax.put("roles", roles);
         ajax.put("permissions", permissions);
+        //获取sso登录的用户信息
+        Object cacheObject = redisCache.getCacheObject(user.getUserName());
+        if (cacheObject != null) {
+            String[] arr = cacheObject.toString().split("\\|");
+            ajax.put("providerId",arr[0]);
+            ajax.put("userId",arr[1]);
+        }
         return ajax;
     }
 
     /**
      * 获取路由信息
-     * 
+     *
      * @return 路由信息
      */
     @GetMapping("getRouters")
-    public AjaxResult getRouters()
-    {
+    public AjaxResult getRouters() {
         LoginUser loginUser = tokenService.getLoginUser(ServletUtils.getRequest());
         // 用户信息
         SysUser user = loginUser.getUser();

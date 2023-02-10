@@ -53,4 +53,11 @@ public class DemoController {
     public AjaxResult getNodeMap(@PathVariable String providerId, @PathVariable Integer nodeId){
          return AjaxResult.success(demoService.getNodeMap(providerId, nodeId));
     }
+
+    @ApiOperation("查询节点下所有的用户信息")
+    @PostMapping("/getNodeAllUser")
+    public String getNodeAllUser(@RequestBody ReqRootTree reqRootTree) {
+        return null;
+    }
+
 }
