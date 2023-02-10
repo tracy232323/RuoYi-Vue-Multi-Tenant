@@ -32,11 +32,15 @@ public class MapUserNode implements Serializable {
      */
     private String companyId;
 
-
     /**
      * 节点id
      */
     private Integer nodeId;
+
+    /**
+     * 用户所属组织路径
+     */
+    private String path;
 
     /**
      * 是否拥有管理权限(1为无，1为有)

@@ -20,7 +20,9 @@ public class ReqUserAuth implements Serializable {
         private Integer userId;
         @ApiModelProperty("人员所在的二级单位")
         private String providerId;
-        @ApiModelProperty("人员所在的部门")
+        @ApiModelProperty("人员所在的部门id")
         private Integer orgId;
+        @ApiModelProperty("人员所在的岗位id")
+        private Integer positionId;
     }
 }

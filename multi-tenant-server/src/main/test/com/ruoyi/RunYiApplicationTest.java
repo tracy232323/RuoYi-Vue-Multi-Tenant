@@ -58,16 +58,17 @@ public class RunYiApplicationTest {
                 ApiOperationConstant.CLIENT_CREDENTIALS,
                 ApiOperationConstant.CLIENT_ID,
                 ApiOperationConstant.CLIENT_SECRET);
-        log.info("Token: {}", token);
-        String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
-        List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
-        JSONObject jsonObject = organizationInfos.get(0);
-        String mainId = jsonObject.get("id").toString();
-        JSONObject root = new JSONObject(jsonObject.get("root"));
-        String id = root.get("id").toString();
-        log.info("mainId: {}", mainId);
-        log.info("id: {}", id);
-//        apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL,mainId,id);
+        String hr = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, "hr", 828046);
+
+    }
+
+    @Test
+    public void test4() {
+        StringBuilder str = new StringBuilder();
+        str.append("123");
+        str.insert(0,"321");
+        String s = str.toString();
+        log.info("str:{}",s);
     }
 
     @Autowired
@@ -345,4 +346,6 @@ public class RunYiApplicationTest {
         TreeNode fatherNode = nodeInfoMap.get(fatherId);
         fatherNode.getChildren().add(treeNode);
     }
+
+
 }

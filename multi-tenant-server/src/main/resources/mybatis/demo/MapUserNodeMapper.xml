@@ -9,6 +9,7 @@
         <result property="userId" column="user_id" jdbcType="INTEGER"/>
         <result property="companyId" column="company_id" jdbcType="VARCHAR"/>
         <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
+        <result property="path" column="path" jdbcType="VARCHAR"/>
         <result property="isManage" column="is_manage" jdbcType="INTEGER"/>
         <result property="isShow" column="is_show" jdbcType="INTEGER"/>
         <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
@@ -29,6 +30,7 @@
         user_id,
         company_id,
         node_id,
+        path,
         is_manage,
         is_show
         ) VALUES
@@ -38,6 +40,7 @@
             #{node.userId},
             #{node.companyId},
             #{node.nodeId},
+            #{path},
             #{node.isManage},
             #{node.isShow}
             )
@@ -94,6 +97,7 @@
             user_id,
             company_id,
             node_id,
+            path,
             is_manage,
             is_show,
             update_time,

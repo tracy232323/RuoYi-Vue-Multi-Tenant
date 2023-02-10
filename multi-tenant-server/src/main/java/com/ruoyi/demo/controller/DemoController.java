@@ -21,6 +21,7 @@ public class DemoController {
         return demoService.getOringTree(reqRootTree);
     }
 
+    @ApiOperation("根据当前用户信息获取其的组织树信息")
     @GetMapping("/get/{providerId}/{userId}/tree")
     public String getTreeByUserId(@PathVariable String providerId, @PathVariable Integer userId){
         return demoService.getTreeByUserId(providerId,userId);
@@ -47,10 +48,9 @@ public class DemoController {
         return AjaxResult.success("success");
     }
 
+    @ApiOperation("根据providerId和nodeId获取当前节点中被授权对象信息列表")
     @GetMapping("/get/{providerId}/{nodeId}/node/map")
     public AjaxResult getNodeMap(@PathVariable String providerId, @PathVariable Integer nodeId){
          return AjaxResult.success(demoService.getNodeMap(providerId, nodeId));
     }
-
-
 }

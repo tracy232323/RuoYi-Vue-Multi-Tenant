@@ -52,7 +52,6 @@ public class ApiOperationUtil {
             throw new CustomException("获取token失败，状态码为:" + status);
         }
         String result = execute.body();
-        log.info(result);
         Map body = new JSONObject(result).toBean(Map.class);
         String token = String.valueOf(body.get(ApiOperationConstant.ACCESS_TOKEN));
         accessToken = token;
@@ -269,7 +268,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取组织机构PATH
-     *
      * @param url
      * @param providerId
      * @param orgId
@@ -293,6 +291,36 @@ public class ApiOperationUtil {
         } else if (status == HttpStatusConstant.Unauthorized) {
             accessToken = null;
             return getOrgPath(url, providerId, orgId);
+        } else {
+            throw new CustomException("调用" + url + "失败，状态码为:" + status);
+        }
+    }
+
+    /**
+     * 获取当前用户的详细信息
+     * @param url url
+     * @param providerId providerId
+     * @param userId userId
+     * @return
+     */
+    public String getUserInfo(String url, String providerId, Integer userId){
+        if (StringUtils.isEmpty(accessToken)) {
+            getAccessToken(ApiOperationConstant.GET_ACCESS_TOKEN_URL, ApiOperationConstant.CLIENT_CREDENTIALS, ApiOperationConstant.CLIENT_ID, ApiOperationConstant.CLIENT_SECRET);
+        }
+        // 替换url中的指定参数
+        url = url.replace(ApiOperationConstant.PROVIDER_ID, providerId);
+        url = url.replace(ApiOperationConstant.USER_ID, userId.toString());
+        HttpResponse execute = HttpRequest.get(url)
+                .header(ApiOperationConstant.AUTHORIZATION, "Bearer " + accessToken)
+                .execute();
+        int status = execute.getStatus();
+        if (status == HttpStatusConstant.OK) {
+            String result = execute.body();
+            log.info(result);
+            return result;
+        } else if (status == HttpStatusConstant.Unauthorized) {
+            accessToken = null;
+            return getUserInfo(url, providerId, userId);
         } else {
             throw new CustomException("调用" + url + "失败，状态码为:" + status);
         }

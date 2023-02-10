@@ -45,11 +45,7 @@ public class InitRootAuthorityConfig {
     @Autowired
     private RootUserService rootUserService;
     @Autowired
-    private RedisCache redisCache;
-    @Autowired
     private BuildTreeUtil buildTreeUtil;
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
 
     @PostConstruct
     public void init() {
@@ -61,7 +57,7 @@ public class InitRootAuthorityConfig {
         List<NodeInfo> nodeList = nodeInfoService.selectAll();
         String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
         List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
-        List<NodeInfo> tempList = new ArrayList<NodeInfo>();
+        List<NodeInfo> tempList = new ArrayList<>();
         for (JSONObject organizationInfo : organizationInfos) {
             String providerId = organizationInfo.get("id").toString();
             JSONObject root = new JSONObject(organizationInfo.get("root"));
@@ -90,6 +86,11 @@ public class InitRootAuthorityConfig {
         List<RootUser> rootUsers = rootUserService.selectAll();
         for (RootUser rootUser : rootUsers) {
             if (!reduce1.isEmpty()) {
+                // 获取主要岗位
+
+                //
+
+
                 grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, reduce1);
             }
         }

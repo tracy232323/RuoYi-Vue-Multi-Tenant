@@ -26,7 +26,7 @@ public class ApiOperationConstant {
     public static final String COMPANY_ID = "{companyId}";
     public static final String POSITION_ID = "{positionId}";
     public static final String ORG_ID = "{orgId}";
-    public static final String USER_ID = "{userId}";
+    public static final String USER_ID = "{userid}";
     public static final String DEPT_ID = "{deptId}";
     public static final Integer TYPE_POSITION = 3;
     public static final Integer TYPE_DEPT = 2;
@@ -46,4 +46,5 @@ public class ApiOperationConstant {
 
     public static final Integer AUTHORITY_NOT_MANAGER_VALUE = 0;
     public static final Integer AUTHORITY_NOT_SHOW_VALUE = 0;
+    public static final String GET_USER_INFO_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/user/{userid}";
 }

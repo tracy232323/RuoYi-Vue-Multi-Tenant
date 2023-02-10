@@ -71,10 +71,17 @@ public class DemoServiceImpl implements DemoService {
         ArrayList<MapUserNode> addNodes = new ArrayList<>();
         for (ReqUserAuth.UserAuth userAuth : list) {
             NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getProviderId(), userAuth.getOrgId());
+            // 构建当前人员所在组织路径
+            String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
+            String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, userAuth.getProviderId(), userAuth.getUserId());
+            String path = buildUserPathFromTree(orgPath);
+            String name = new JSONObject(userInfo).get("name",String.class);
+            path = path + " " + name;
             MapUserNode mapUserNode = MapUserNode.builder()
                     .userId(userAuth.getUserId())
                     .companyId(userAuth.getProviderId())
                     .nodeId(nodeInfo.getId())
+                    .path(path)
                     .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
                     .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
                     .build();
@@ -129,5 +136,23 @@ public class DemoServiceImpl implements DemoService {
         }
         // 通过唯一标识去映射表中检索出此节点拥有多少被授权人员和岗位
         return mapUserNodeMapper.selectListByNodeId(nodeInfo.getId());
+    }
+
+
+    /**
+     * 根据获取的组织列表，构建一个用户所在组织路径
+     * @param data 组织列表
+     * @return 用户所在组织路径
+     */
+    public String buildUserPathFromTree(String data){
+        List<JSONObject> nodeList = new JSONArray(data).toList(JSONObject.class);
+        StringBuilder str = new StringBuilder();
+        for(JSONObject node : nodeList) {
+            if( node.containsKey("virtual") && Boolean.TRUE.equals(node.get("virtual",Boolean.class))){
+                continue;
+            }
+            str.insert(0,node.get("name"));
+        }
+        return str.toString();
     }
 }
