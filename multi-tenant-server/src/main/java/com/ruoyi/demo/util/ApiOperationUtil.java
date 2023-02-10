@@ -113,7 +113,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取岗位所有用户
-     *
      * @param url
      * @param providerId
      * @param positionId
@@ -144,7 +143,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取单位直接下级组织机构集合
-     *
      * @param url
      * @param providerId
      * @param orgId
@@ -175,7 +173,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取用户所有岗位集合
-     *
      * @param url
      * @param providerId
      * @param userId
@@ -206,7 +203,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取部门下级组织机构
-     *
      * @param url
      * @param providerId
      * @param deptId
@@ -237,7 +233,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取岗位所在部门
-     *
      * @param url
      * @param providerId
      * @param positionId
@@ -325,4 +320,37 @@ public class ApiOperationUtil {
             throw new CustomException("调用" + url + "失败，状态码为:" + status);
         }
     }
+
+    /**
+     * 获取当前用户的主要岗位
+     * @param url url
+     * @param providerId providerId
+     * @param userId userId
+     * @return
+     */
+    public String getMainPositionByUser(String url, String providerId, Integer userId){
+        if (StringUtils.isEmpty(accessToken)) {
+            getAccessToken(ApiOperationConstant.GET_ACCESS_TOKEN_URL, ApiOperationConstant.CLIENT_CREDENTIALS, ApiOperationConstant.CLIENT_ID, ApiOperationConstant.CLIENT_SECRET);
+        }
+        // 替换url中的指定参数
+        url = url.replace(ApiOperationConstant.PROVIDER_ID, providerId);
+        url = url.replace(ApiOperationConstant.USER_ID, userId.toString());
+        HttpResponse execute = HttpRequest.get(url)
+                .header(ApiOperationConstant.AUTHORIZATION, "Bearer " + accessToken)
+                .execute();
+        int status = execute.getStatus();
+        if (status == HttpStatusConstant.OK) {
+            String result = execute.body();
+            log.info(result);
+            return result;
+        } else if (status == HttpStatusConstant.Unauthorized) {
+            accessToken = null;
+            return getUserInfo(url, providerId, userId);
+        } else {
+            throw new CustomException("调用" + url + "失败，状态码为:" + status);
+        }
+    }
+
+
+
 }

@@ -58,8 +58,9 @@ public class RunYiApplicationTest {
                 ApiOperationConstant.CLIENT_CREDENTIALS,
                 ApiOperationConstant.CLIENT_ID,
                 ApiOperationConstant.CLIENT_SECRET);
-        String hr = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, "hr", 828046);
-
+//        String hr = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, "hr", 828046);
+        String hr = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, "hr", 828046);
+        log.info("hr:{}",hr);
     }
 
     @Test

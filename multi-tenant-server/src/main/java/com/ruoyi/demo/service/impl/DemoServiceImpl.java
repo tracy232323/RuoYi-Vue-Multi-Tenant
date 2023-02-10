@@ -16,6 +16,7 @@ import com.ruoyi.demo.service.DemoService;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.demo.util.BuildTreeUtil;
+import com.ruoyi.demo.util.CommonUtil;
 import com.ruoyi.framework.redis.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,7 +45,7 @@ public class DemoServiceImpl implements DemoService {
     @Autowired
     private BuildTreeUtil buildTreeUtil;
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
+    private CommonUtil commonUtil;
 
     @Override
     public String getOringTree(ReqRootTree reqRootTree) {
@@ -72,7 +73,7 @@ public class DemoServiceImpl implements DemoService {
             // 构建当前人员所在组织路径
             String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
             String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, userAuth.getProviderId(), userAuth.getUserId());
-            String path = buildUserPathFromTree(orgPath);
+            String path = commonUtil.buildUserPathFromTree(orgPath);
             String name = new JSONObject(userInfo).get("name",String.class);
             path = path + " " + name;
             MapUserNode mapUserNode = MapUserNode.builder()

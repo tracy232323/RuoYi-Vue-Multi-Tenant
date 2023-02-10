@@ -16,6 +16,7 @@ import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.service.RootUserService;
 import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.demo.util.BuildTreeUtil;
+import com.ruoyi.demo.util.CommonUtil;
 import com.ruoyi.framework.redis.RedisCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,8 @@ public class InitRootAuthorityConfig {
     private RootUserService rootUserService;
     @Autowired
     private BuildTreeUtil buildTreeUtil;
+    @Autowired
+    private CommonUtil commonUtil;
 
     @PostConstruct
     public void init() {
@@ -87,11 +90,17 @@ public class InitRootAuthorityConfig {
         for (RootUser rootUser : rootUsers) {
             if (!reduce1.isEmpty()) {
                 // 获取主要岗位
-
-                //
-
-
-                grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, reduce1);
+                String mainPositionByUser = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, rootUser.getProviderId(), rootUser.getUserId());
+                Integer id = new JSONObject(mainPositionByUser).get("id", Integer.class);
+                // 根据主要岗位获取路径
+                String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, rootUser.getProviderId(), id);
+                String path = commonUtil.buildUserPathFromTree(orgPath);
+                // 获取当前用户名称
+                String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, rootUser.getProviderId(), rootUser.getUserId());
+                String name = new JSONObject(userInfo).get("name",String.class);
+                // 拼接获取path
+                path = path + " " + name;
+                grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, reduce1,path);
             }
         }
         // 看看需要删除多少节点
@@ -118,7 +127,7 @@ public class InitRootAuthorityConfig {
         }
     }
 
-    public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, List<NodeInfo> nodeInfos) {
+    public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, List<NodeInfo> nodeInfos, String path) {
         // 使用iterator在大数据量时，效率高
         Iterator<NodeInfo> iterator = nodeInfos.iterator();
         List<MapUserNode> tempList = new ArrayList<>();
@@ -128,6 +137,7 @@ public class InitRootAuthorityConfig {
             mapUserNode.setCompanyId(providerId);
             mapUserNode.setUserId(userId);
             mapUserNode.setNodeId(next.getId());
+            mapUserNode.setPath(path);
             // 判断授权
             if (ApiOperationConstant.AUTHORITY_MANAGER.equals(type)) {
                 mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_MANAGER_VALUE);
@@ -151,8 +161,8 @@ public class InitRootAuthorityConfig {
 
     /**
      * 解析组织树，获取每个节点的信息
-     * @param nodes      节点集合
-     * @param data       数据
+     * @param nodes 节点集合
+     * @param data 数据
      * @param providerId
      * @param id
      */
