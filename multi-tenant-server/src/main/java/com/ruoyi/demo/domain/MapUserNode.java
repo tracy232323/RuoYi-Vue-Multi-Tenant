@@ -28,6 +28,16 @@ public class MapUserNode implements Serializable {
     private Integer userId;
 
     /**
+     * 岗位id
+     */
+    private Integer positionId;
+
+    /**
+     * 1为人员，2为岗位
+     */
+    private Integer type;
+
+    /**
      * 单位id（只有公司id和用户id一起才能定位到用户）
      */
     private String companyId;
