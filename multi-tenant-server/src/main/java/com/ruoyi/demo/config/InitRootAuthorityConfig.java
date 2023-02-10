@@ -20,6 +20,7 @@ import com.ruoyi.framework.redis.RedisCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
@@ -47,6 +48,8 @@ public class InitRootAuthorityConfig {
     private RedisCache redisCache;
     @Autowired
     private BuildTreeUtil buildTreeUtil;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @PostConstruct
     public void init() {
@@ -109,7 +112,8 @@ public class InitRootAuthorityConfig {
             String treeJSON = buildTreeUtil.buildShowTree(nodeInfos);
             // 第六步：存放redis即可
             String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
-            redisCache.setCacheObject(key, treeJSON);
+            BuildTreeUtil.rootTree.put(key,treeJSON);
+//            stringRedisTemplate.opsForValue().set(key, treeJSON);
         }
     }
 
@@ -146,7 +150,6 @@ public class InitRootAuthorityConfig {
 
     /**
      * 解析组织树，获取每个节点的信息
-     *
      * @param nodes      节点集合
      * @param data       数据
      * @param providerId
@@ -180,6 +183,4 @@ public class InitRootAuthorityConfig {
         NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
         return nodeInfo;
     }
-
-
 }

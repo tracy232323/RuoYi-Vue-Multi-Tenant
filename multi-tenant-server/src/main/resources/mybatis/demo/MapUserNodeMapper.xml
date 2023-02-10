@@ -87,4 +87,21 @@
     <update id="update2Auth">
         UPDATE map_user_node SET is_manage = #{isManage}, is_show = #{isShow} WHERE id = #{id}
     </update>
+
+    <select id="selectListByNodeId" resultMap="BaseResultMap">
+        SELECT
+            id,
+            user_id,
+            company_id,
+            node_id,
+            is_manage,
+            is_show,
+            update_time,
+            create_time,
+            deleted
+        FROM map_user_node
+        WHERE node_id = #{node_id}
+    </select>
+
+
 </mapper>

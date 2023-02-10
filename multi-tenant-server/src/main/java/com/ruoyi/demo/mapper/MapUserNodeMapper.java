@@ -23,6 +23,8 @@ public interface MapUserNodeMapper {
     public MapUserNode selectOne(@Param("companyId") String companyId, @Param("userId") Integer userId, @Param("nodeId") Integer nodeId);
 
     public void update2Auth(@Param("id")Integer id, @Param("isManage")Integer isManage, @Param("isShow")Integer isShow);
+
+    List<MapUserNode> selectListByNodeId(Integer nodeId);
 }
 
 

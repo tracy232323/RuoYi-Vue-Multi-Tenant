@@ -23,6 +23,8 @@ import java.util.Map;
 @Slf4j
 public class BuildTreeUtil {
 
+    public static Map<String,String> rootTree = new HashMap<String,String>();
+
     public String buildShowTree(List<NodeInfo> analogData) {
         // 根据查询出来的授权节点进行树的构建
         // 获取一下此树的根节点id

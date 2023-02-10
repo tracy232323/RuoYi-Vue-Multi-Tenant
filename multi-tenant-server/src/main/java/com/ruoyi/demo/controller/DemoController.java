@@ -22,9 +22,8 @@ public class DemoController {
     }
 
     @GetMapping("/get/{providerId}/{userId}/tree")
-    public AjaxResult getTreeByUserId(@PathVariable String providerId, @PathVariable Integer userId) {
-        String treeJSON = demoService.getTreeByUserId(providerId, userId);
-        return AjaxResult.success("success", treeJSON);
+    public String getTreeByUserId(@PathVariable String providerId, @PathVariable Integer userId){
+        return demoService.getTreeByUserId(providerId,userId);
     }
 
     @ApiOperation("把用户添加到映射表")
@@ -47,4 +46,11 @@ public class DemoController {
         demoService.delAuth(reqAuth);
         return AjaxResult.success("success");
     }
+
+    @GetMapping("/get/{providerId}/{nodeId}/node/map")
+    public AjaxResult getNodeMap(@PathVariable String providerId, @PathVariable Integer nodeId){
+         return AjaxResult.success(demoService.getNodeMap(providerId, nodeId));
+    }
+
+
 }

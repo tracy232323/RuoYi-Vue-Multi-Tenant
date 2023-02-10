@@ -2,6 +2,7 @@ package com.ruoyi.demo.service.impl;
 
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
+import com.ruoyi.common.exception.CustomException;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
@@ -18,6 +19,7 @@ import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.framework.redis.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,8 @@ public class DemoServiceImpl implements DemoService {
     private NodeInfoService nodeInfoService;
     @Autowired
     private BuildTreeUtil buildTreeUtil;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public String getOringTree(ReqRootTree reqRootTree) {
@@ -83,21 +87,21 @@ public class DemoServiceImpl implements DemoService {
     public String getTreeByUserId(String providerId, Integer userId) {
         // 首先判断当前用户在redis中有无缓存，有的话直接取
         String key = RedisConstant.REDIS_USER_TREE_PREFIX + providerId + ":" + userId;
-        Object cacheObject = redisCache.getCacheObject(key);
-        if (StringUtils.isEmpty(cacheObject)) {
-            return cacheObject.toString();
+//        String cacheObject = stringRedisTemplate.opsForValue().get(key);
+        if(BuildTreeUtil.rootTree.containsKey(key)){
+            return BuildTreeUtil.rootTree.get(key);
         }
         // 检索出用户以及用户全部岗位的节点，进行一个去重并集之后再进行树的构建
         List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(providerId, userId);
-        String userAllPosition = apiOperationUtil.getUserAllPosition(ApiOperationConstant.GET_USER_ALL_POSITION_URL, providerId, userId);
-        List<JSONObject> userPositions = new JSONArray(userAllPosition).toList(JSONObject.class);
-        for (JSONObject userPosition : userPositions) {
-            Integer positionId = userPosition.get(NodeFieldConstant.POSITION_ID, Integer.class);
-            List<NodeInfo> tempNodeInfos = nodeInfoService.selectMapByPositionId(providerId, positionId);
-            nodeInfos.addAll(tempNodeInfos);
-            // 进行去重并集处理，获取新的nodeInfos
-            nodeInfos = nodeInfos.stream().distinct().collect(Collectors.toList());
-        }
+//        String userAllPosition = apiOperationUtil.getUserAllPosition(ApiOperationConstant.GET_USER_ALL_POSITION_URL, providerId, userId);
+//        List<JSONObject> userPositions = new JSONArray(userAllPosition).toList(JSONObject.class);
+//        for( JSONObject userPosition : userPositions ){
+//            Integer positionId = userPosition.get(NodeFieldConstant.POSITION_ID, Integer.class);
+//            List<NodeInfo> tempNodeInfos = nodeInfoService.selectMapByPositionId(providerId, positionId);
+//            nodeInfos.addAll(tempNodeInfos);
+//            // 进行去重并集处理，获取新的nodeInfos
+//            nodeInfos = nodeInfos.stream().distinct().collect(Collectors.toList());
+//        }
         // 构建树结构
         return buildTreeUtil.buildShowTree(nodeInfos);
     }
@@ -114,5 +118,16 @@ public class DemoServiceImpl implements DemoService {
     public void delAuth(ReqAuth reqAuth) {
         List<Integer> ids = Arrays.asList(reqAuth.getIds());
         mapUserNodeMapper.deleteByNodeIds(ids);
+    }
+
+    @Override
+    public List<MapUserNode> getNodeMap(String providerId, Integer nodeId) {
+        // 先通过providerId和nodeId确定唯一节点标识
+        NodeInfo nodeInfo = nodeInfoMapper.selectOne(providerId, nodeId);
+        if( StringUtils.isEmpty(nodeInfo) ){
+            throw new CustomException("被授权节点不存在，无法进行当前节点被授权人员信息展示");
+        }
+        // 通过唯一标识去映射表中检索出此节点拥有多少被授权人员和岗位
+        return mapUserNodeMapper.selectListByNodeId(nodeInfo.getId());
     }
 }
