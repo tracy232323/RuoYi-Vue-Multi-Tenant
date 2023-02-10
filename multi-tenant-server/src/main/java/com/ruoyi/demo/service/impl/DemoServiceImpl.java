@@ -7,6 +7,7 @@ import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.constant.RedisConstant;
+import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
 import com.ruoyi.demo.mapper.MapUserNodeMapper;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.util.StringUtils;
@@ -33,7 +35,6 @@ public class DemoServiceImpl implements DemoService {
     private ApiOperationUtil apiOperationUtil;
     @Autowired
     private NodeInfoMapper nodeInfoMapper;
-
     @Autowired
     private MapUserNodeMapper mapUserNodeMapper;
     @Autowired
@@ -99,5 +100,19 @@ public class DemoServiceImpl implements DemoService {
         }
         // 构建树结构
         return buildTreeUtil.buildShowTree(nodeInfos);
+    }
+
+    @Override
+    public void addAuth(ReqAuth reqAuth) {
+        Integer[] ids = reqAuth.getIds();
+        for (Integer id : ids) {
+            mapUserNodeMapper.update2Auth(id, reqAuth.getIsManage(), reqAuth.getIsShow());
+        }
+    }
+
+    @Override
+    public void delAuth(ReqAuth reqAuth) {
+        List<Integer> ids = Arrays.asList(reqAuth.getIds());
+        mapUserNodeMapper.deleteByNodeIds(ids);
     }
 }

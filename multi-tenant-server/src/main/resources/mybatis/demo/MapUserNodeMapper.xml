@@ -22,6 +22,7 @@
         update_time,create_time,deleted
     </sql>
 
+
     <insert id="insertBatch">
         INSERT INTO map_user_node (
         id,
@@ -43,6 +44,7 @@
         </foreach>
     </insert>
 
+
     <select id="selectAll" resultMap="BaseResultMap">
         SELECT
             id,
@@ -56,6 +58,7 @@
             deleted
         FROM map_user_node
     </select>
+
 
     <select id="deleteByNodeIds" parameterType="Integer">
         delete from map_user_node where node_id in
@@ -79,4 +82,9 @@
         FROM map_user_node
         WHERE company_id = #{companyId} and user_id = #{userId} and node_id = #{nodeId}
     </select>
+
+
+    <update id="update2Auth">
+        UPDATE map_user_node SET is_manage = #{isManage}, is_show = #{isShow} WHERE id = #{id}
+    </update>
 </mapper>

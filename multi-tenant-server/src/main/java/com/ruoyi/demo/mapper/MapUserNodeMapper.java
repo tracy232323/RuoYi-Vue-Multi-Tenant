@@ -21,6 +21,8 @@ public interface MapUserNodeMapper {
     void deleteByNodeIds(@Param("ids") List<Integer> ids);
 
     public MapUserNode selectOne(@Param("companyId") String companyId, @Param("userId") Integer userId, @Param("nodeId") Integer nodeId);
+
+    public void update2Auth(@Param("id")Integer id, @Param("isManage")Integer isManage, @Param("isShow")Integer isShow);
 }
 
 
