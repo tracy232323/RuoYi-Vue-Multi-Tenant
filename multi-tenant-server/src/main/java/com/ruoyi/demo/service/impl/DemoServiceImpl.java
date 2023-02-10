@@ -7,7 +7,6 @@ import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.constant.RedisConstant;
-import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
 import com.ruoyi.demo.mapper.MapUserNodeMapper;
@@ -24,10 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ruoyi.demo.constant.ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,7 +50,7 @@ public class DemoServiceImpl implements DemoService {
             return apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
         }
         if (1 == reqRootTree.getType() || 2 == reqRootTree.getType()) {
-            return apiOperationUtil.getCompanyAllOrg(ApiOperationConstant.GET_COMPANY_ALL_ORG_URL,reqRootTree.getProviderId(), reqRootTree.getOrgId());
+            return apiOperationUtil.getCompanyAllOrg(ApiOperationConstant.GET_COMPANY_ALL_ORG_URL, reqRootTree.getProviderId(), reqRootTree.getOrgId());
         }
         if (3 == reqRootTree.getType()) {
             return apiOperationUtil.getOrgAllUsers(ApiOperationConstant.GET_POSITION_ALL_USER_URL, reqRootTree.getProviderId(), reqRootTree.getPositionId());
@@ -66,13 +63,19 @@ public class DemoServiceImpl implements DemoService {
     public void addAuthUser(ReqUserAuth reqUserAuth) {
         List<ReqUserAuth.UserAuth> list = reqUserAuth.getList();
         //需要插入的人员
-        ArrayList<MapUserNode> mapUserNodes = new ArrayList<>();
+        ArrayList<MapUserNode> addNodes = new ArrayList<>();
         for (ReqUserAuth.UserAuth userAuth : list) {
-            NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getProviderId(), userAuth.getUserId());
-            MapUserNode mapUserNode = MapUserNode.builder().userId(userAuth.getUserId()).companyId(userAuth.getProviderId()).nodeId(nodeInfo.getId()).isManage(0).isShow(0).build();
-            mapUserNodes.add(mapUserNode);
+            NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getProviderId(), userAuth.getOrgId());
+            MapUserNode mapUserNode = MapUserNode.builder()
+                    .userId(userAuth.getUserId())
+                    .companyId(userAuth.getProviderId())
+                    .nodeId(nodeInfo.getId())
+                    .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
+                    .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
+                    .build();
+            addNodes.add(mapUserNode);
         }
-        mapUserNodeMapper.insertBatch(mapUserNodes);
+        mapUserNodeMapper.insertBatch(addNodes);
     }
 
     @Override
@@ -80,14 +83,14 @@ public class DemoServiceImpl implements DemoService {
         // 首先判断当前用户在redis中有无缓存，有的话直接取
         String key = RedisConstant.REDIS_USER_TREE_PREFIX + providerId + ":" + userId;
         Object cacheObject = redisCache.getCacheObject(key);
-        if(StringUtils.isEmpty(cacheObject)){
+        if (StringUtils.isEmpty(cacheObject)) {
             return cacheObject.toString();
         }
         // 检索出用户以及用户全部岗位的节点，进行一个去重并集之后再进行树的构建
         List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(providerId, userId);
         String userAllPosition = apiOperationUtil.getUserAllPosition(ApiOperationConstant.GET_USER_ALL_POSITION_URL, providerId, userId);
         List<JSONObject> userPositions = new JSONArray(userAllPosition).toList(JSONObject.class);
-        for( JSONObject userPosition : userPositions ){
+        for (JSONObject userPosition : userPositions) {
             Integer positionId = userPosition.get(NodeFieldConstant.POSITION_ID, Integer.class);
             List<NodeInfo> tempNodeInfos = nodeInfoService.selectMapByPositionId(providerId, positionId);
             nodeInfos.addAll(tempNodeInfos);

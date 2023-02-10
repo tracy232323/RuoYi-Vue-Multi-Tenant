@@ -5,15 +5,15 @@
 <mapper namespace="com.ruoyi.demo.mapper.MapUserNodeMapper">
 
     <resultMap id="BaseResultMap" type="com.ruoyi.demo.domain.MapUserNode">
-            <id property="id" column="id" jdbcType="INTEGER"/>
-            <result property="userId" column="user_id" jdbcType="INTEGER"/>
-            <result property="companyId" column="company_id" jdbcType="VARCHAR"/>
-            <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
-            <result property="isManage" column="is_manage" jdbcType="INTEGER"/>
-            <result property="isShow" column="is_show" jdbcType="INTEGER"/>
-            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
-            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
-            <result property="deleted" column="deleted" jdbcType="INTEGER"/>
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="userId" column="user_id" jdbcType="INTEGER"/>
+        <result property="companyId" column="company_id" jdbcType="VARCHAR"/>
+        <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
+        <result property="isManage" column="is_manage" jdbcType="INTEGER"/>
+        <result property="isShow" column="is_show" jdbcType="INTEGER"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="deleted" column="deleted" jdbcType="INTEGER"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -62,5 +62,21 @@
         <foreach collection="ids" open="(" close=")" separator="," item="id">
             #{id}
         </foreach>
+    </select>
+
+
+    <select id="selectOne" resultMap="BaseResultMap">
+          SELECT
+            id,
+            user_id,
+            company_id,
+            node_id,
+            is_manage,
+            is_show,
+            update_time,
+            create_time,
+            deleted
+        FROM map_user_node
+        WHERE company_id = #{companyId} and user_id = #{userId} and node_id = #{nodeId}
     </select>
 </mapper>

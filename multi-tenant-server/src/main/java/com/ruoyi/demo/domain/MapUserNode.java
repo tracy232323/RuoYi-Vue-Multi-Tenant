@@ -32,6 +32,7 @@ public class MapUserNode implements Serializable {
      */
     private String companyId;
 
+
     /**
      * 节点id
      */

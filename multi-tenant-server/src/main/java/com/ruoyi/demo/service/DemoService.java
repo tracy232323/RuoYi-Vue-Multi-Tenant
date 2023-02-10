@@ -8,6 +8,5 @@ public interface DemoService {
 
     void addAuthUser(ReqUserAuth reqUserAuth);
 
-
     String getTreeByUserId(String providerId, Integer userId);
 }
