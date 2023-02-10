@@ -7,8 +7,6 @@
     <resultMap id="BaseResultMap" type="com.ruoyi.demo.domain.MapUserNode">
             <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="userId" column="user_id" jdbcType="INTEGER"/>
-            <result property="positionId" column="position_id" jdbcType="INTEGER"/>
-            <result property="type" column="type" jdbcType="INTEGER"/>
             <result property="companyId" column="company_id" jdbcType="VARCHAR"/>
             <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
             <result property="isManage" column="is_manage" jdbcType="INTEGER"/>
@@ -51,8 +49,6 @@
             user_id,
             company_id,
             node_id,
-            positionId,
-            type,
             is_manage,
             is_show,
             update_time,
