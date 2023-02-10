@@ -23,6 +23,8 @@ public interface NodeInfoMapper {
 
     void deleteByIds(@Param("ids") List<Integer> ids);
 
+    List<NodeInfo> selectMapByPositionId(@Param("providerId")String providerId, @Param("positionId")Integer positionId);
+
     public NodeInfo selectOne(@Param("providerId") String providerId, @Param("nodeId") Integer nodeId);
 }
 

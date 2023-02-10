@@ -7,4 +7,7 @@ public interface DemoService {
     String getOringTree(ReqRootTree reqRootTree);
 
     void addAuthUser(ReqUserAuth reqUserAuth);
+
+
+    String getTreeByUserId(String providerId, Integer userId);
 }

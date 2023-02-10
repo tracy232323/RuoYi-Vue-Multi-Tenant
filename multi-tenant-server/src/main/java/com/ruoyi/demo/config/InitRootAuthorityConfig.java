@@ -15,6 +15,7 @@ import com.ruoyi.demo.service.MapUserNodeService;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.service.RootUserService;
 import com.ruoyi.demo.util.ApiOperationUtil;
+import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.framework.redis.RedisCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,23 +35,20 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 public class InitRootAuthorityConfig {
-
     @Autowired
     private ApiOperationUtil apiOperationUtil;
-
     @Autowired
     private NodeInfoService nodeInfoService;
-
     @Autowired
     private MapUserNodeService mapUserNodeService;
-
     @Autowired
     private RootUserService rootUserService;
-
     @Autowired
     private RedisCache redisCache;
+    @Autowired
+    private BuildTreeUtil buildTreeUtil;
 
-//    @PostConstruct
+    @PostConstruct
     public void init() {
         apiOperationUtil.getAccessToken(
                 ApiOperationConstant.GET_ACCESS_TOKEN_URL,
@@ -74,7 +72,7 @@ public class InitRootAuthorityConfig {
         List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
         log.info("---得到差集 reduce1 (list1 - list2)---：{}", reduce1);
         // 判断有没有新增节点，插入后进行有则进行权限授予，无则跳过
-        if (nodeList.isEmpty() && !reduce1.isEmpty()) {
+        if (!reduce1.isEmpty()) {
             // 开始解析组织树
             if (reduce1.size() > 1000) {
                 List<List<NodeInfo>> partitions = Lists.partition(reduce1, 1000);
@@ -82,7 +80,7 @@ public class InitRootAuthorityConfig {
                     nodeInfoService.insertBatch(partition);
                 }
             } else {
-                nodeInfoService.insertBatch(tempList);
+                nodeInfoService.insertBatch(reduce1);
             }
         }
         // 查询有多少个root账号,就给他们都授权了
@@ -108,7 +106,7 @@ public class InitRootAuthorityConfig {
         for (RootUser rootUser : rootUsers) {
             List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(rootUser.getProviderId(), rootUser.getUserId());
             // 第五步：根据此集合构建树结构
-            String treeJSON = buildShowTree(nodeInfos);
+            String treeJSON = buildTreeUtil.buildShowTree(nodeInfos);
             // 第六步：存放redis即可
             String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
             redisCache.setCacheObject(key, treeJSON);
@@ -183,57 +181,5 @@ public class InitRootAuthorityConfig {
         return nodeInfo;
     }
 
-    public String buildShowTree(List<NodeInfo> analogData) {
-        // 根据查询出来的授权节点进行树的构建
-        // 获取一下此树的根节点id
-        Iterator<NodeInfo> iterator = analogData.iterator();
-        HashMap<Integer, NodeInfo> allNodeInfoMap = new HashMap<>();
-        while (iterator.hasNext()) {
-            NodeInfo next = iterator.next();
-            allNodeInfoMap.put(next.getNodeId(), next);
-        }
-        Integer rootNodeId = 0;
-        if (analogData.size() >= 1) {
-            NodeInfo nodeInfo = analogData.get(0);
-            rootNodeId = getRootNodeId(allNodeInfoMap, nodeInfo.getNodeId());
-        }
-        Map<Integer, TreeNode> nodeInfoMap = new HashMap<Integer, TreeNode>();
-        for (NodeInfo nodeInfo : analogData) {
-            buildShowTree(allNodeInfoMap, nodeInfoMap, nodeInfo.getNodeId());
-        }
-        TreeNode treeNode = nodeInfoMap.get(rootNodeId);
-        log.info("Root:{}", JSONUtil.toJsonStr(treeNode));
-        return JSONUtil.toJsonStr(treeNode);
-    }
 
-    public Integer getRootNodeId(HashMap<Integer, NodeInfo> allNodeInfoMap, Integer id) {
-        NodeInfo nodeInfo = allNodeInfoMap.get(id);
-        if (NodeFieldConstant.ROOT_NODE.equals(nodeInfo.getFatherId())) {
-            return nodeInfo.getNodeId();
-        }
-        return getRootNodeId(allNodeInfoMap, nodeInfo.getFatherId());
-    }
-
-    public void buildShowTree(HashMap<Integer, NodeInfo> allNodeInfoMap, Map<Integer, TreeNode> nodeInfoMap, Integer id) {
-        NodeInfo nodeInfo = allNodeInfoMap.get(id);
-        Integer fatherId = nodeInfo.getFatherId();
-        // 定义递归的出口( 当节点的父亲节点为0或者在nodeInfoMap中已存在 )
-        if (nodeInfoMap.containsKey(id)) {
-            return;
-        }
-        if (NodeFieldConstant.ROOT_NODE.equals(fatherId)) {
-            //加入到节点中
-            TreeNode treeNode = new TreeNode();
-            treeNode.setNodeInfo(nodeInfo);
-            nodeInfoMap.put(nodeInfo.getNodeId(), treeNode);
-            return;
-        }
-        TreeNode treeNode = new TreeNode();
-        treeNode.setNodeInfo(nodeInfo);
-        nodeInfoMap.put(nodeInfo.getNodeId(), treeNode);
-        // 获取父亲节点
-        buildShowTree(allNodeInfoMap, nodeInfoMap, fatherId);
-        TreeNode fatherNode = nodeInfoMap.get(fatherId);
-        fatherNode.getChildren().add(treeNode);
-    }
 }

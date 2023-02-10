@@ -40,6 +40,11 @@ public class NodeInfoServiceImpl implements NodeInfoService {
     public void deleteByIds(List<Integer> ids) {
         nodeInfoMapper.deleteByIds(ids);
     }
+
+    @Override
+    public List<NodeInfo> selectMapByPositionId(String providerId, Integer positionId) {
+        return nodeInfoMapper.selectMapByPositionId(providerId, positionId);
+    }
 }
 
 
