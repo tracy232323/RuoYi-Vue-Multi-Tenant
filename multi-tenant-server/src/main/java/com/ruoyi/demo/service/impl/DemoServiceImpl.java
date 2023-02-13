@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.util.StringUtils;
 
@@ -178,6 +179,9 @@ public class DemoServiceImpl implements DemoService {
             String path = buildUserPathFromTree(orgPath);
             jsonObject.putOpt("path", path);
         }
+
+        redisCache.setCacheObject("getNodeAllUser", JSONUtil.toJsonStr(list));
+
         return list;
     }
 
