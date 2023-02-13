@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * @Date: 2023/2/8 09:19
  * @Version: 1.0.0
  **/
-@Configuration
+//@Configuration
 @Slf4j
 public class InitRootAuthorityConfig {
     @Autowired

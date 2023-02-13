@@ -162,13 +162,21 @@ public class DemoServiceImpl implements DemoService {
         for (JSONObject jsonObject : list) {
             //判断用户状态
             NodeInfo nodeInfo = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
-            MapUserNode mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("id"), nodeInfo.getId());
+            MapUserNode mapUserNode = null;
+            if (3 == nodeInfo.getType()) {
+                Integer fatherId = nodeInfo.getFatherId();
+                NodeInfo node = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), fatherId);
+                mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("id"), node.getId());
+            } else {
+                mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("id"), nodeInfo.getId());
+            }
+
             if (!ApiOperationConstant.AUTHORITY_SHOW_VALUE.equals(mapUserNode.getIsShow())) {
                 continue;
             }
             String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
             String path = buildUserPathFromTree(orgPath);
-            jsonObject.putOpt("path",path);
+            jsonObject.putOpt("path", path);
         }
         return list;
     }
