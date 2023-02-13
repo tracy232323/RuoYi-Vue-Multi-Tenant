@@ -29,7 +29,9 @@ public class CommonUtil {
                 continue;
             }
             str.insert(0,node.get("name"));
+            str.insert(0,node.get("/"));
         }
+        str = str.deleteCharAt(0);
         return str.toString();
     }
 
