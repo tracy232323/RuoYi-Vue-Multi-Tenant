@@ -2,6 +2,7 @@ package com.ruoyi.demo.service.impl;
 
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.ruoyi.common.exception.CustomException;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.domain.MapUserNode;
@@ -19,7 +20,6 @@ import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.demo.util.CommonUtil;
 import com.ruoyi.framework.redis.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,7 +74,7 @@ public class DemoServiceImpl implements DemoService {
             String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
             String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, userAuth.getProviderId(), userAuth.getUserId());
             String path = commonUtil.buildUserPathFromTree(orgPath);
-            String name = new JSONObject(userInfo).get("name",String.class);
+            String name = new JSONObject(userInfo).get("name", String.class);
             path = path + " " + name;
             MapUserNode mapUserNode = MapUserNode.builder()
                     .userId(userAuth.getUserId())
@@ -93,7 +93,7 @@ public class DemoServiceImpl implements DemoService {
         // 首先判断当前用户在redis中有无缓存，有的话直接取
         String key = RedisConstant.REDIS_USER_TREE_PREFIX + providerId + ":" + userId;
 //        String cacheObject = stringRedisTemplate.opsForValue().get(key);
-        if(BuildTreeUtil.rootTree.containsKey(key)){
+        if (BuildTreeUtil.rootTree.containsKey(key)) {
             return BuildTreeUtil.rootTree.get(key);
         }
         // 检索出用户以及用户全部岗位的节点，进行一个去重并集之后再进行树的构建
@@ -129,7 +129,7 @@ public class DemoServiceImpl implements DemoService {
     public List<MapUserNode> getNodeMap(String providerId, Integer nodeId) {
         // 先通过providerId和nodeId确定唯一节点标识
         NodeInfo nodeInfo = nodeInfoMapper.selectOne(providerId, nodeId);
-        if( StringUtils.isEmpty(nodeInfo) ){
+        if (StringUtils.isEmpty(nodeInfo)) {
             throw new CustomException("被授权节点不存在，无法进行当前节点被授权人员信息展示");
         }
         // 通过唯一标识去映射表中检索出此节点拥有多少被授权人员和岗位
@@ -139,25 +139,62 @@ public class DemoServiceImpl implements DemoService {
 
     /**
      * 根据获取的组织列表，构建一个用户所在组织路径
+     *
      * @param data 组织列表
      * @return 用户所在组织路径
      */
-    public String buildUserPathFromTree(String data){
+    public String buildUserPathFromTree(String data) {
         List<JSONObject> nodeList = new JSONArray(data).toList(JSONObject.class);
         StringBuilder str = new StringBuilder();
-        for(JSONObject node : nodeList) {
-            if( node.containsKey("virtual") && Boolean.TRUE.equals(node.get("virtual",Boolean.class))){
+        for (JSONObject node : nodeList) {
+            if (node.containsKey("virtual") && Boolean.TRUE.equals(node.get("virtual", Boolean.class))) {
                 continue;
             }
-            str.insert(0,node.get("name"));
+            str.insert(0, node.get("name"));
         }
         return str.toString();
     }
 
     @Override
-    public void getNodeAllUser(ReqRootTree reqRootTree) {
-//        String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
-//        String path = buildUserPathFromTree(orgPath);
+    public List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree) {
+        List<JSONObject> list = new ArrayList<>();
+        getOrgUsers(reqRootTree.getProviderId(), reqRootTree.getType(), reqRootTree.getOrgId(), reqRootTree.getPositionId(), list);
+        for (JSONObject jsonObject : list) {
+            //判断用户状态
+            NodeInfo nodeInfo = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
+            MapUserNode mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("id"), nodeInfo.getId());
+            if (!ApiOperationConstant.AUTHORITY_SHOW_VALUE.equals(mapUserNode.getIsShow())) {
+                continue;
+            }
+            String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
+            String path = buildUserPathFromTree(orgPath);
+            jsonObject.putOpt("path",path);
+        }
+        return list;
+    }
+
+    private void getOrgUsers(String providerId, Integer type, Integer orgId, Integer positionId, List<JSONObject> list) {
+        //获取所有二级集团单位集合
+        if (1 == type || 2 == type) {
+            String jsonStr = apiOperationUtil.getCompanyAllOrg(ApiOperationConstant.GET_COMPANY_ALL_ORG_URL, providerId, orgId);
+            List<JSONObject> jsonObjects = JSONUtil.toList(jsonStr, JSONObject.class);
+            for (JSONObject jsonObject : jsonObjects) {
+                Integer tp = jsonObject.getInt("type");
+                Integer id = jsonObject.getInt("id");
+                if (tp == 3) {
+                    getOrgUsers(providerId, tp, null, id, list);
+                } else {
+                    getOrgUsers(providerId, tp, id, null, list);
+                }
+            }
+        } else if (type == 3) {
+            String jsonStr = apiOperationUtil.getOrgAllUsers(ApiOperationConstant.GET_POSITION_ALL_USER_URL, providerId, positionId);
+            List<JSONObject> jsonObjects = JSONUtil.toList(jsonStr, JSONObject.class);
+            for (JSONObject jsonObject : jsonObjects) {
+                jsonObject.putOpt("positionId", positionId);
+            }
+            list.addAll(jsonObjects);
+        }
     }
 
 }

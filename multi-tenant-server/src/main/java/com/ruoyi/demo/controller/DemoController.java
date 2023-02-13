@@ -1,5 +1,6 @@
 package com.ruoyi.demo.controller;
 
+import cn.hutool.json.JSONObject;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
@@ -8,6 +9,8 @@ import com.ruoyi.framework.web.domain.AjaxResult;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/demo")
@@ -56,8 +59,8 @@ public class DemoController {
 
     @ApiOperation("查询节点下所有的用户信息")
     @PostMapping("/getNodeAllUser")
-    public String getNodeAllUser(@RequestBody ReqRootTree reqRootTree) {
-        return null;
+    public List<JSONObject> getNodeAllUser(@RequestBody ReqRootTree reqRootTree) {
+        return demoService.getNodeAllUser(reqRootTree);
     }
 
 }

@@ -1,5 +1,6 @@
 package com.ruoyi.demo.service;
 
+import cn.hutool.json.JSONObject;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.request.ReqRootTree;
@@ -29,5 +30,5 @@ public interface DemoService {
      */
     List<MapUserNode> getNodeMap(String providerId, Integer nodeId);
 
-    void getNodeAllUser(ReqRootTree reqRootTree);
+    List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree);
 }
