@@ -179,9 +179,7 @@ public class DemoServiceImpl implements DemoService {
             String path = buildUserPathFromTree(orgPath);
             jsonObject.putOpt("path", path);
         }
-
-        redisCache.setCacheObject("getNodeAllUser", JSONUtil.toJsonStr(list));
-
+        redisCache.setCacheObject("getNodeAllUser", JSONUtil.toJsonStr(list), 60, TimeUnit.MINUTES);
         return list;
     }
 

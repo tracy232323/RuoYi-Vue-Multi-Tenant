@@ -18,6 +18,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -75,21 +76,36 @@ public class DemoController {
 
     @ApiOperation("查询节点下所有的用户信息")
     @GetMapping("/getNodeAllUser/export")
-
     public void export(HttpServletResponse response) throws IOException {
         //查询所有用户
-//        List<User> list = userService.list();
         String s = redisCache.getCacheObject("getNodeAllUser").toString();
         List<JSONObject> list = JSONUtil.toList(s, JSONObject.class);
+        for (JSONObject jsonObject : list) {
+            String path = jsonObject.getStr("path");
+            String[] arr = path.split("/");
+            List<String> paths = Arrays.asList(arr);
+            int size = paths.size();
+            jsonObject.putOpt("dept", paths.get(size - 3));
+            jsonObject.putOpt("org", paths.get(size - 2));
+            jsonObject.putOpt("position", paths.get(size - 1));
+            //需要从实体中去掉，否则会写到excel里
+            jsonObject.remove("gender");
+            jsonObject.remove("catagory");
+            jsonObject.remove("path");
+            jsonObject.remove("positionId");
+            jsonObject.remove("positionStatus");
+            jsonObject.remove("mainPosition");
+            jsonObject.remove("id");
+        }
         //在内存操作，写到浏览器
         ExcelWriter writer = ExcelUtil.getWriter(true);
 
         //自定义标题别名
         writer.addHeaderAlias("order", "序号");
         writer.addHeaderAlias("name", "姓名");
-        writer.addHeaderAlias("path", "单位");
-        writer.addHeaderAlias("path", "部门");
-        writer.addHeaderAlias("path", "岗位");
+        writer.addHeaderAlias("dept", "单位");
+        writer.addHeaderAlias("org", "部门");
+        writer.addHeaderAlias("position", "岗位");
 
         //默认配置
         writer.write(list, true);
@@ -100,7 +116,7 @@ public class DemoController {
         String fileName = URLEncoder.encode("用户信息", "UTF-8");
         //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
         response.setHeader("Content-Disposition", System.currentTimeMillis() + ".xlsx");
-                ServletOutputStream outputStream = response.getOutputStream();
+        ServletOutputStream outputStream = response.getOutputStream();
 
         //将Writer刷新到OutPut
         writer.flush(outputStream, true);
