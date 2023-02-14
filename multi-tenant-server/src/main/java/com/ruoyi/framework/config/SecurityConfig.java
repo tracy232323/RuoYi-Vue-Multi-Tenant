@@ -89,7 +89,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 // 对于登录login 验证码captchaImage 允许匿名访问
                 // 微信端不用此验证方式
-                .antMatchers("/login", "/ssoLogin", "/captchaImage", "/wechat/**", "/demo/**").permitAll()
+                .antMatchers("/login", "/ssoLogin", "/captchaImage", "/wechat/**", "/demo/**", "/monitor/operlog/list").permitAll()
                 .antMatchers(
                         HttpMethod.GET,
                         "/*.html",

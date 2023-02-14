@@ -19,6 +19,9 @@ import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.demo.util.CommonUtil;
 import com.ruoyi.framework.redis.RedisCache;
+import com.ruoyi.project.monitor.domain.SysOperLog;
+import com.ruoyi.project.monitor.mapper.SysOperLogMapper;
+import com.ruoyi.project.monitor.service.ISysOperLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,8 @@ public class DemoServiceImpl implements DemoService {
     private BuildTreeUtil buildTreeUtil;
     @Autowired
     private CommonUtil commonUtil;
+    @Autowired
+    private SysOperLogMapper sysOperLogMapper;
 
     @Override
     public String getOringTree(ReqRootTree reqRootTree) {
@@ -65,10 +70,14 @@ public class DemoServiceImpl implements DemoService {
 
     @Transactional
     @Override
-    public void addAuthUser(ReqUserAuth reqUserAuth) {
+    public void addAuthUser(ReqUserAuth reqUserAuth, String providerId, Integer userId) {
+        // 获取当前登陆人员信息
+        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
+        String loginUserName = new JSONObject(loginUser).get("name",String.class);
         List<ReqUserAuth.UserAuth> list = reqUserAuth.getList();
         //需要插入的人员
         ArrayList<MapUserNode> addNodes = new ArrayList<>();
+        List<SysOperLog> addOperLogs = new ArrayList<>();
         for (ReqUserAuth.UserAuth userAuth : list) {
             NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getProviderId(), userAuth.getOrgId());
             // 构建当前人员所在组织路径
@@ -81,19 +90,33 @@ public class DemoServiceImpl implements DemoService {
                     .userId(userAuth.getUserId())
                     .companyId(userAuth.getProviderId())
                     .nodeId(nodeInfo.getId())
+                    .path(path)
                     .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
                     .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
                     .build();
+            String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getOrgId());
+            nodePath = commonUtil.buildUserPathFromTree(nodePath);
             addNodes.add(mapUserNode);
+            SysOperLog sysOperLog = new SysOperLog();
+            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_ADD_NUMBER);
+            sysOperLog.setBusinessType(1);
+            sysOperLog.setMethod("addAuthUser");
+            sysOperLog.setRequestMethod("POST");
+            sysOperLog.setOperatorType(1);
+            sysOperLog.setOperName(loginUserName);
+//            sysOperLog.setDeptName("神州数码");
+            sysOperLog.setNodeId(userAuth.getOrgId());
+            sysOperLog.setOperInfo("在"+nodePath+"添加"+path+"人员");
+            addOperLogs.add(sysOperLog);
         }
         mapUserNodeMapper.insertBatch(addNodes);
+        sysOperLogMapper.insertOperlogBatch(addOperLogs);
     }
 
     @Override
     public String getTreeByUserId(String providerId, Integer userId) {
         // 首先判断当前用户在redis中有无缓存，有的话直接取
         String key = RedisConstant.REDIS_USER_TREE_PREFIX + providerId + ":" + userId;
-//        String cacheObject = stringRedisTemplate.opsForValue().get(key);
         if (BuildTreeUtil.rootTree.containsKey(key)) {
             return BuildTreeUtil.rootTree.get(key);
         }
@@ -113,17 +136,88 @@ public class DemoServiceImpl implements DemoService {
     }
 
     @Override
-    public void addAuth(ReqAuth reqAuth) {
+    public void addAuth(ReqAuth reqAuth,String providerId, Integer userId) {
         Integer[] ids = reqAuth.getIds();
+        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
+        String loginUserName = new JSONObject(loginUser).get("name",String.class);
         for (Integer id : ids) {
             mapUserNodeMapper.update2Auth(id, reqAuth.getIsManage(), reqAuth.getIsShow());
+            // 根据id获取映射表信息，从中获取nodeId
+            MapUserNode mapUserNode = mapUserNodeMapper.selectOneById(id);
+            // 根据id获取node信息
+            NodeInfo nodeInfo = nodeInfoMapper.selectOneById(mapUserNode.getId());
+            String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
+            nodePath = commonUtil.buildUserPathFromTree(nodePath);
+            StringBuilder info = new StringBuilder("在"+nodePath+"对"+mapUserNode.getPath());
+            StringBuilder str = new StringBuilder("");
+            if( reqAuth.getIsManage().equals(ApiOperationConstant.AUTHORITY_MANAGER_VALUE) ){
+                str.append(" 管理权限 ");
+            }
+            if( reqAuth.getIsShow().equals(ApiOperationConstant.AUTHORITY_SHOW_VALUE) ){
+                str.append(" 浏览权限 ");
+            }
+            if(StringUtils.isEmpty(str)){
+                str.insert(0,"授予");
+                info.append(str);
+            }
+            StringBuilder str1 = new StringBuilder("");
+            if( !reqAuth.getIsManage().equals(ApiOperationConstant.AUTHORITY_MANAGER_VALUE) ){
+                str1.append(" 管理权限 ");
+            }
+            if( !reqAuth.getIsShow().equals(ApiOperationConstant.AUTHORITY_SHOW_VALUE) ){
+                str1.append(" 浏览权限 ");
+            }
+            if(!StringUtils.isEmpty(str)){
+                str.insert(0,"撤销");
+                info.append(str);
+            }
+            SysOperLog sysOperLog = new SysOperLog();
+            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_ADD_NUMBER);
+            sysOperLog.setBusinessType(1);
+            sysOperLog.setMethod("addAuth");
+            sysOperLog.setRequestMethod("POST");
+            sysOperLog.setOperatorType(1);
+            sysOperLog.setOperName(loginUserName);
+//            sysOperLog.setDeptName("神州数码");
+            sysOperLog.setNodeId(nodeInfo.getNodeId());
+            sysOperLog.setOperInfo(info.toString());
+            sysOperLogMapper.insertOperlog(sysOperLog);
         }
     }
 
     @Override
-    public void delAuth(ReqAuth reqAuth) {
+    public void delAuth(ReqAuth reqAuth,String providerId, Integer userId) {
+//        String loginName = reqAuth.getLoginName();
+//        Object cacheObject = redisCache.getCacheObject(loginName);
+//        if (StringUtils.isEmpty(cacheObject)) {
+//            throw new CustomException("检索失败，当前无登陆用户");
+//        }
+        // 查询当前用户拥有多少预览权限节点
+//        String[] arr = cacheObject.toString().split("\\|");
+        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
+        String loginUserName = new JSONObject(loginUser).get("name",String.class);
         List<Integer> ids = Arrays.asList(reqAuth.getIds());
+        List<SysOperLog> addOperLogs = new ArrayList<>();
+        for( Integer id : ids ){
+            // 根据id获取映射表信息，从中获取nodeId
+            MapUserNode mapUserNode = mapUserNodeMapper.selectOneById(id);
+            // 根据id获取node信息
+            NodeInfo nodeInfo = nodeInfoMapper.selectOneById(mapUserNode.getId());
+            String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
+            nodePath = commonUtil.buildUserPathFromTree(nodePath);
+            SysOperLog sysOperLog = new SysOperLog();
+            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_ADD_NUMBER);
+            sysOperLog.setBusinessType(1);
+            sysOperLog.setMethod("delAuth");
+            sysOperLog.setRequestMethod("POST");
+            sysOperLog.setOperatorType(1);
+            sysOperLog.setOperName(loginUserName);
+            sysOperLog.setOperInfo("删除"+nodePath+"上"+mapUserNode.getPath());
+            sysOperLog.setNodeId(nodeInfo.getNodeId());
+            addOperLogs.add(sysOperLog);
+        }
         mapUserNodeMapper.deleteByNodeIds(ids);
+        sysOperLogMapper.insertOperlogBatch(addOperLogs);
     }
 
     @Override

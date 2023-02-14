@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
  * @Date: 2023/2/8 09:19
  * @Version: 1.0.0
  **/
-//@Configuration
+@Configuration
 @Slf4j
 public class InitRootAuthorityConfig {
     @Autowired
@@ -50,6 +51,30 @@ public class InitRootAuthorityConfig {
     @Autowired
     private CommonUtil commonUtil;
 
+
+    /**
+     * 插入根节点
+     */
+//    @PostConstruct
+//    public void initNodeInfo(){
+//        NodeInfo nodeInfo = getRootNode();
+//        NodeInfo tempNode = nodeInfoService.selectOne(nodeInfo);
+//        if(StringUtils.isEmpty(tempNode)){
+//            nodeInfoService.insertBatch(Arrays.asList(nodeInfo));
+//        }
+//    }
+
+    public NodeInfo getRootNode(){
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setNodeId(0);
+        nodeInfo.setFatherId(-1);
+        nodeInfo.setName("总公司");
+        nodeInfo.setOrder(1);
+        nodeInfo.setProviderId("demo");
+        nodeInfo.setType(1);
+        return nodeInfo;
+    }
+
     @PostConstruct
     public void init() {
         apiOperationUtil.getAccessToken(
@@ -61,6 +86,7 @@ public class InitRootAuthorityConfig {
         String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
         List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
         List<NodeInfo> tempList = new ArrayList<>();
+        tempList.add(getRootNode());
         for (JSONObject organizationInfo : organizationInfos) {
             String providerId = organizationInfo.get("id").toString();
             JSONObject root = new JSONObject(organizationInfo.get("root"));
@@ -73,7 +99,7 @@ public class InitRootAuthorityConfig {
         // 差集 (list1 - list2)
         List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
         log.info("---得到差集 reduce1 (list1 - list2)---：{}", reduce1);
-        // 判断有没有新增节点，插入后进行有则进行权限授予，无则跳过
+        // 判断有没有新增节点，插入
         if (!reduce1.isEmpty()) {
             // 开始解析组织树
             if (reduce1.size() > 1000) {
@@ -120,7 +146,7 @@ public class InitRootAuthorityConfig {
             List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(rootUser.getProviderId(), rootUser.getUserId());
             // 第五步：根据此集合构建树结构
             String treeJSON = buildTreeUtil.buildShowTree(nodeInfos);
-            // 第六步：存放redis即可
+            // 第六步：存放内存即可
             String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
             BuildTreeUtil.rootTree.put(key,treeJSON);
 //            stringRedisTemplate.opsForValue().set(key, treeJSON);
@@ -132,8 +158,11 @@ public class InitRootAuthorityConfig {
         Iterator<NodeInfo> iterator = nodeInfos.iterator();
         List<MapUserNode> tempList = new ArrayList<>();
         while (iterator.hasNext()) {
-            MapUserNode mapUserNode = new MapUserNode();
             NodeInfo next = iterator.next();
+            if( ApiOperationConstant.TYPE_POSITION.equals(next.getType()) ){
+                continue;
+            }
+            MapUserNode mapUserNode = new MapUserNode();
             mapUserNode.setCompanyId(providerId);
             mapUserNode.setUserId(userId);
             mapUserNode.setNodeId(next.getId());
@@ -167,9 +196,10 @@ public class InitRootAuthorityConfig {
      * @param id
      */
     public void getOrganizationChildren(List<NodeInfo> nodes, JSONObject data, String providerId, Integer id) {
-        boolean key = data.containsKey(NodeFieldConstant.CHILDREN_FIELD_NAME);
         Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
-        if (!key || ApiOperationConstant.TYPE_POSITION.equals(type)) {
+        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
+            NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
+            nodes.add(nodeInfo);
             return;
         }
         // 提取字段组成NodeInfo

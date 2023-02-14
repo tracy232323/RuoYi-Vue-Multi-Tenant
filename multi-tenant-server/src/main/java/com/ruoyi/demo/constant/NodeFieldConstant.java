@@ -13,6 +13,6 @@ public class NodeFieldConstant {
     public static final String NAME_FIELD_NAME = "name";
     public static final String ORDER_FIELD_NAME = "order";
     public static final String CHILDREN_FIELD_NAME = "children";
-    public static final Integer ROOT_NODE = 0;
+    public static final Integer ROOT_NODE = -1;
     public static final String POSITION_ID = "id";
 }

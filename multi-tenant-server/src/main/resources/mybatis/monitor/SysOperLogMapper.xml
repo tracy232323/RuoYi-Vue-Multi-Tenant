@@ -21,18 +21,48 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<result property="status"         column="status"         />
 		<result property="errorMsg"       column="error_msg"      />
 		<result property="operTime"       column="oper_time"      />
+		<result property="operInfo" 	  column="oper_info"      />
+		<result property="nodeId" 		  column="node_id"        />
+
 	</resultMap>
 
 	<sql id="selectOperLogVo">
-        select oper_id, title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time
+        select oper_id, title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time, oper_info,node_id
         from sys_oper_log
     </sql>
     
 	<insert id="insertOperlog" parameterType="SysOperLog">
-		insert into sys_oper_log(title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time)
-        values (#{title}, #{businessType}, #{method}, #{requestMethod}, #{operatorType}, #{operName}, #{deptName}, #{operUrl}, #{operIp}, #{operLocation}, #{operParam}, #{jsonResult}, #{status}, #{errorMsg}, sysdate())
+		insert into sys_oper_log(title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time,oper_info,node_id)
+        values (#{title}, #{businessType}, #{method}, #{requestMethod}, #{operatorType}, #{operName}, #{deptName}, #{operUrl}, #{operIp}, #{operLocation}, #{operParam}, #{jsonResult}, #{status}, #{errorMsg}, sysdate(), #{operInfo},#{nodeId})
 	</insert>
-	
+
+	<insert id="insertOperlogBatch" parameterType="SysOperLog">
+		insert into sys_oper_log(title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time,oper_info,node_id)
+		values
+		<foreach collection="list" item="log" separator=",">
+			(
+			 #{log.title},
+			 #{log.businessType},
+			 #{log.method},
+			 #{log.requestMethod},
+			 #{log.operatorType},
+			 #{log.operName},
+			 #{log.deptName},
+			 #{log.operUrl},
+			 #{log.operIp},
+			 #{log.operLocation},
+			 #{log.operParam},
+			 #{log.jsonResult},
+			 #{log.status},
+			 #{log.errorMsg},
+			 sysdate(),
+			 #{log.operInfo},
+			 #{log.nodeId}
+			)
+		</foreach>
+	</insert>
+
+
 	<select id="selectOperLogList" parameterType="SysOperLog" resultMap="SysOperLogResult">
 		<include refid="selectOperLogVo"/>
 		<where>
@@ -51,18 +81,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			<if test="status != null">
 				AND status = #{status}
 			</if>
-			<if test="operName != null and operName != ''">
-				AND oper_name like concat('%', #{operName}, '%')
-			</if>
 			<if test="beginTime != null and beginTime != ''"><!-- 开始时间检索 -->
 				and date_format(oper_time,'%y%m%d') &gt;= date_format(#{beginTime},'%y%m%d')
 			</if>
 			<if test="endTime != null and endTime != ''"><!-- 结束时间检索 -->
 				and date_format(oper_time,'%y%m%d') &lt;= date_format(#{endTime},'%y%m%d')
 			</if>
+			<if test="nodeIds != null and nodeIds.size() > 0">
+				AND node_id in
+				<foreach collection="nodeIds" item="nodeId" open="(" separator="," close=")">
+					#{nodeId}
+				</foreach>
+			</if>
 		</where>
 		order by oper_id desc
 	</select>
+	<!--			<if test="operName != null and operName != ''">-->
+	<!--				AND oper_name like concat('%', #{operName}, '%')-->
+	<!--			</if>-->
 	
 	<delete id="deleteOperLogByIds" parameterType="Long">
  		delete from sys_oper_log where oper_id in

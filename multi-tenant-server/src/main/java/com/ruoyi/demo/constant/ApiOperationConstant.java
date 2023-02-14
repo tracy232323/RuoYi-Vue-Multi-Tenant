@@ -48,4 +48,5 @@ public class ApiOperationConstant {
     public static final Integer AUTHORITY_NOT_SHOW_VALUE = 0;
     public static final String GET_USER_INFO_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/user/{userid}";
     public static final String GET_MAIN_POSITION_URL = "https://hrapitest.crcc.cn/api/hr/org/{providerId}/user/{userid}/mainposition";
+    public static final String OPERATION_TITLE_ADD_NUMBER = "新增人员";
 }

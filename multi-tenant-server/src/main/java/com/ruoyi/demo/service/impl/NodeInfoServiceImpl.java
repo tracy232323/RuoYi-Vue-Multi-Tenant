@@ -45,6 +45,11 @@ public class NodeInfoServiceImpl implements NodeInfoService {
     public List<NodeInfo> selectMapByPositionId(String providerId, Integer positionId) {
         return nodeInfoMapper.selectMapByPositionId(providerId, positionId);
     }
+
+    @Override
+    public NodeInfo selectOne(NodeInfo nodeInfo) {
+        return nodeInfoMapper.selectOne(nodeInfo.getProviderId(), nodeInfo.getNodeId());
+    }
 }
 
 

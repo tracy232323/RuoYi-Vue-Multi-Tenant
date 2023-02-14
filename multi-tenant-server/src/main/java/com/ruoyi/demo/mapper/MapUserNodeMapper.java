@@ -25,6 +25,10 @@ public interface MapUserNodeMapper {
     public void update2Auth(@Param("id")Integer id, @Param("isManage")Integer isManage, @Param("isShow")Integer isShow);
 
     List<MapUserNode> selectListByNodeId(Integer nodeId);
+
+    MapUserNode selectOneById(Integer id);
+
+    List<MapUserNode> selectListByShow(MapUserNode mapUserNode);
 }
 
 

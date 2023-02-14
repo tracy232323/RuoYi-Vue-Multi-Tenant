@@ -2,6 +2,8 @@ package com.ruoyi.demo.util;
 
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
+import com.ruoyi.demo.domain.NodeInfo;
+import com.ruoyi.demo.domain.TreeNode;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -33,6 +35,25 @@ public class CommonUtil {
         }
         str = str.deleteCharAt(0);
         return str.toString();
+    }
+
+    public Integer getInsertIndex(List<TreeNode> list, Integer order){
+        if( list.isEmpty() ){
+            return 0;
+        }
+        int leftIndex = 0;
+        int rightIndex = list.size() - 1;
+        while( leftIndex <= rightIndex ){
+            int mid = leftIndex + ((rightIndex - leftIndex) / 2);
+            if (list.get(mid).getNodeInfo().getOrder() > order) {
+                // target 在左区间，所以[low, mid - 1]
+                rightIndex = mid - 1;
+            } else{
+                // target 在右区间，所以[mid + 1, high]
+                leftIndex = mid + 1;
+            }
+        }
+        return rightIndex + 1;
     }
 
 }

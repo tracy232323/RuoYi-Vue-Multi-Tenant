@@ -80,6 +80,22 @@
          WHERE provider_id = #{providerId} and node_id = #{nodeId}
     </select>
 
+    <select id="selectOneById" resultMap="BaseResultMap">
+        SELECT
+            id,
+            type,
+            father_id,
+            node_id,
+            name,
+            `order`,
+            provider_id,
+            update_time,
+            create_time,
+            deleted
+        FROM node_info
+        WHERE id = #{id}
+    </select>
+
 
     <select id="selectByMap" resultMap="BaseResultMap">
         SELECT

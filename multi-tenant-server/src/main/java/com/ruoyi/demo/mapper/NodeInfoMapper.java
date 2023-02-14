@@ -26,6 +26,8 @@ public interface NodeInfoMapper {
     List<NodeInfo> selectMapByPositionId(@Param("providerId")String providerId, @Param("positionId")Integer positionId);
 
     public NodeInfo selectOne(@Param("providerId") String providerId, @Param("nodeId") Integer nodeId);
+
+    NodeInfo selectOneById(Integer id);
 }
 
 

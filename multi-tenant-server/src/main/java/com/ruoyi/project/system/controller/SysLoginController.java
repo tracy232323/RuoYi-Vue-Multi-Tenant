@@ -6,6 +6,7 @@ import java.util.Set;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.framework.redis.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,6 +44,8 @@ public class SysLoginController {
 
     @Autowired
     private RedisCache redisCache;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     /**
      * 登录方法
@@ -87,7 +90,7 @@ public class SysLoginController {
         ajax.put("roles", roles);
         ajax.put("permissions", permissions);
         //获取sso登录的用户信息
-        Object cacheObject = redisCache.getCacheObject(user.getUserName());
+        Object cacheObject = redisTemplate.opsForValue().get(user.getUserName());
         if (cacheObject != null) {
             String[] arr = cacheObject.toString().split("\\|");
             ajax.put("providerId",arr[0]);

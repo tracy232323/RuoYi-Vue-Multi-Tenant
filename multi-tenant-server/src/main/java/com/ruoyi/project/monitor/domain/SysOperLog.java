@@ -1,5 +1,7 @@
 package com.ruoyi.project.monitor.domain;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.framework.aspectj.lang.annotation.Excel;
@@ -82,6 +84,39 @@ public class SysOperLog extends BaseEntity
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "操作时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date operTime;
+
+    /** demo操作方式 */
+    @Excel(name = "操作方式")
+    private String operInfo;
+
+    @Excel(name = "操作节点")
+    private Integer nodeId;
+
+    private ArrayList<Integer> nodeIds;
+
+    public Integer getNodeId() {
+        return nodeId;
+    }
+
+    public void setNodeId(Integer nodeId) {
+        this.nodeId = nodeId;
+    }
+
+    public ArrayList getNodeIds() {
+        return nodeIds;
+    }
+
+    public void setNodeIds(ArrayList nodeIds) {
+        this.nodeIds = nodeIds;
+    }
+
+    public String getOperInfo() {
+        return operInfo;
+    }
+
+    public void setOperInfo(String operInfo) {
+        this.operInfo = operInfo;
+    }
 
     public Long getOperId()
     {

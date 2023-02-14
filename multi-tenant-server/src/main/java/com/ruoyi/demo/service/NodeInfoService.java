@@ -19,4 +19,6 @@ public interface NodeInfoService {
     void deleteByIds(List<Integer> ids);
 
     List<NodeInfo> selectMapByPositionId(String providerId, Integer positionId);
+
+    NodeInfo selectOne(NodeInfo nodeInfo);
 }
