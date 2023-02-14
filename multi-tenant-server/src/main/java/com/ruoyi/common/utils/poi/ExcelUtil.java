@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -144,7 +145,8 @@ public class ExcelUtil<T>
     public List<T> importExcel(String sheetName, InputStream is) throws Exception
     {
         this.type = Type.IMPORT;
-        this.wb = WorkbookFactory.create(is);
+//        this.wb = WorkbookFactory.create(is);
+        this.wb = new HSSFWorkbook(is);
         List<T> list = new ArrayList<T>();
         Sheet sheet = null;
         if (StringUtils.isNotEmpty(sheetName))

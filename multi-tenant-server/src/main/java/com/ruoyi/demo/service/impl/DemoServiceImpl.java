@@ -137,25 +137,6 @@ public class DemoServiceImpl implements DemoService {
         return mapUserNodeMapper.selectListByNodeId(nodeInfo.getId());
     }
 
-
-    /**
-     * 根据获取的组织列表，构建一个用户所在组织路径
-     *
-     * @param data 组织列表
-     * @return 用户所在组织路径
-     */
-    public String buildUserPathFromTree(String data) {
-        List<JSONObject> nodeList = new JSONArray(data).toList(JSONObject.class);
-        StringBuilder str = new StringBuilder();
-        for (JSONObject node : nodeList) {
-            if (node.containsKey("virtual") && Boolean.TRUE.equals(node.get("virtual", Boolean.class))) {
-                continue;
-            }
-            str.insert(0, node.get("name"));
-        }
-        return str.toString();
-    }
-
     @Override
     public List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree) {
         List<JSONObject> list = new ArrayList<>();
@@ -176,7 +157,7 @@ public class DemoServiceImpl implements DemoService {
                 continue;
             }
             String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
-            String path = buildUserPathFromTree(orgPath);
+            String path = commonUtil.buildUserPathFromTree(orgPath);
             jsonObject.putOpt("path", path);
         }
         redisCache.setCacheObject("getNodeAllUser", JSONUtil.toJsonStr(list), 60, TimeUnit.MINUTES);
