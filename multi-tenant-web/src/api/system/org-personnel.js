@@ -57,3 +57,28 @@ export function deleteAuthorizeApi(data) {
 }
 
 
+//获取hr树
+export const getRootTrees = (data) => {
+	return request({
+		url: '/demo/getOringTree',
+		method: 'post',
+		data
+	})
+}
+
+//新增用户 /demo/addAuthUser
+export const setAddAuthUser = (data) => {
+	return request({
+		url: '/demo/addAuthUser',
+		method: 'post',
+		data
+	})
+}
+
+//根据providerId和nodeId获取当前节点中被授权对象信息列表
+export const getNodeList = (providerId, nodeId) => {
+	return request({
+		url: `/demo/get/${providerId}/${nodeId}/node/map`,
+		method: 'get'
+	})
+}

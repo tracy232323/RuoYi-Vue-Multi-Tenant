@@ -1,27 +1,50 @@
 <template>
   <div class="app-container">
+    <!-- {{ departmentIds }} -->
     <el-container>
-      <el-aside style="background:white;">
-        <el-tree :data="organizationData" :props="orgTreeProps"
-          highlight-current @node-click="handleNodeClick">
+      <el-aside style="background: white">
+        <el-tree
+          :data="organizationData"
+          :props="orgTreeProps"
+          highlight-current
+          @node-click="handleNodeClick"
+        >
         </el-tree>
       </el-aside>
       <el-main>
         <el-row :gutter="10" class="mb8">
           <el-col :span="1.5">
-            <el-button type="primary" icon="el-icon-plus" size="mini" @click="addPersonDialogVisible = true" v-hasPermi="['system:dict:add']">
+            <el-button
+              type="primary"
+              icon="el-icon-plus"
+              size="mini"
+              :disabled="!departmentIds"
+              @click="addPhoClick"
+              v-hasPermi="['system:dict:add']"
+            >
               新增人员
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="success" icon="el-icon-edit" size="mini" :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length"
-              v-hasPermi="['system:dict:edit']" @click="permissionDialogVisible = true">
+            <el-button
+              type="success"
+              icon="el-icon-edit"
+              size="mini"
+              :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length"
+              v-hasPermi="['system:dict:edit']"
+              @click="permissionDialogVisible = true"
+            >
               授权
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="danger" icon="el-icon-delete" size="mini" :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length"
-              @click="deleteAuthorize">
+            <el-button
+              type="danger"
+              icon="el-icon-delete"
+              size="mini"
+              :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length"
+              @click="deleteAuthorize"
+            >
               删除
             </el-button>
           </el-col>
@@ -32,7 +55,11 @@
           </el-col>
         </el-row>
 
-        <el-table v-loading="loading" :data="authorizeList" @selection-change="handleSelectionAuthChange">
+        <el-table
+          v-loading="loading"
+          :data="authorizeList"
+          @selection-change="handleSelectionAuthChange"
+        >
           <el-table-column type="selection" width="55" align="center" />
           <el-table-column label="序号" align="center" type="index">
             <template slot-scope="scope">
@@ -76,11 +103,10 @@
           :page.sync="queryParams.pageNum"
           :limit.sync="queryParams.pageSize"
           @pagination="getList"/> -->
-
       </el-main>
     </el-container>
 
-
+    <!-- 
     <el-dialog :visible.sync="addPersonDialogVisible" width="800" append-to-body>
 
       <tree-transfer  height='540px' filter openAll
@@ -91,18 +117,41 @@
         <el-button type="primary">确 定</el-button>
         <el-button @click="addPersonDialogVisible = false">取 消</el-button>
       </div>
-    </el-dialog>
-
-    <el-dialog title="设置用户权限" :visible.sync="permissionDialogVisible" width="500px" append-to-body>
+    </el-dialog> -->
+    <!-- 穿梭轮  -->
+    <transfers
+      v-if="flag"
+      :flag.sync="flag"
+      :title="title"
+      :rootData="rootData"
+      :departmentIds="departmentIds"
+      :providerIds="providerIds"
+      @refreshFn="handleNodeClick"
+    ></transfers>
+    <el-dialog
+      title="设置用户权限"
+      :visible.sync="permissionDialogVisible"
+      width="500px"
+      append-to-body
+    >
       <el-form label-width="80px">
         <el-form-item>
-            <div><el-checkbox v-model="manageChecked" @change="manageCheckedChanged">管理</el-checkbox></div>
-            <div><el-checkbox v-model="showChecked" :disabled="manageChecked">浏览</el-checkbox></div>
+          <div>
+            <el-checkbox v-model="manageChecked" @change="manageCheckedChanged"
+              >管理</el-checkbox
+            >
+          </div>
+          <div>
+            <el-checkbox v-model="showChecked" :disabled="manageChecked"
+              >浏览</el-checkbox
+            >
+          </div>
         </el-form-item>
-        
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="confirmAuthorization">确 定</el-button>
+        <el-button type="primary" @click="confirmAuthorization"
+          >确 定</el-button
+        >
         <el-button @click="permissionDialogVisible = false">取 消</el-button>
       </div>
     </el-dialog>
@@ -110,18 +159,34 @@
 </template>
   
 <script>
-import { getOrgTreeApi, getOrgAuthorizeListeApi, setAuthorizeApi, deleteAuthorizeApi } from "@/api/system/org-personnel";
-import TreeTransfer from 'el-tree-transfer'
+import {
+  getOrgTreeApi,
+  getOrgAuthorizeListeApi,
+  setAuthorizeApi,
+  deleteAuthorizeApi,
+  getRootTrees
+} from '@/api/system/org-personnel'
+// import TreeTransfer from 'el-tree-transfer'
 import { mapGetters } from 'vuex'
+import transfers from '../../../components/TransferTree'
 
 export default {
   name: 'Authorize',
   components: {
-    TreeTransfer
+    // TreeTransfer
+    transfers
   },
   data() {
     return {
-       // 组织树相关
+      // 穿梭轮------------state
+      flag: false,
+      title: '增加用户',
+      // 顶层root
+      rootData: [],
+      departmentIds: null,
+      providerIds: '',
+      // 穿梭轮------------end
+      // 组织树相关
       organizationData: [],
       orgTreeProps: {
         children: 'children',
@@ -134,58 +199,72 @@ export default {
       authorizeList: [],
       checkedAuthorizeObjs: [],
 
-      addPersonDialogVisible: false,
-      fromData:[
+      // addPersonDialogVisible: false,
+      fromData: [
         {
-          id: "1",
+          id: '1',
           pid: 0,
-          label: "一级 1",
+          label: '一级 1',
           children: [
             {
-              id: "1-1",
-              pid: "1",
-              label: "二级 1-1",
+              id: '1-1',
+              pid: '1',
+              label: '二级 1-1',
               disabled: true,
               children: []
             },
             {
-              id: "1-2",
-              pid: "1",
-              label: "二级 1-2",
+              id: '1-2',
+              pid: '1',
+              label: '二级 1-2',
               children: [
                 {
-                  id: "1-2-1",
-                  pid: "1-2",
+                  id: '1-2-1',
+                  pid: '1-2',
                   children: [],
-                  label: "二级 1-2-1"
+                  label: '二级 1-2-1'
                 },
                 {
-                  id: "1-2-2",
-                  pid: "1-2",
+                  id: '1-2-2',
+                  pid: '1-2',
                   children: [],
-                  label: "二级 1-2-2"
+                  label: '二级 1-2-2'
                 }
               ]
             }
           ]
-        },
+        }
       ],
-      toData:[],
+      toData: [],
 
       // 授权
       permissionDialogVisible: false,
       manageChecked: false,
-      showChecked: false,
-    };
+      showChecked: false
+    }
   },
   computed: {
     ...mapGetters(['providerId', 'userId'])
   },
   methods: {
+    // 获取最顶层
+    async getTopRoot() {
+      try {
+        const res = await getRootTrees({})
+        console.log(res, '顶层root')
+        this.rootData = res
+      } catch (error) {}
+    },
+    // 新增用户按钮
+    addPhoClick(val) {
+      this.flag = true
+      console.log(val, this.flag)
+    },
+
     getOrgTree() {
       getOrgTreeApi(this.providerId, this.userId).then(res => {
         const root = this.processTreeData(res)
-        this.organizationData = [root];
+        this.organizationData = [root]
       })
     },
     processTreeData(orgData) {
@@ -196,20 +275,27 @@ export default {
         name: orgData.nodeInfo.name,
         type: orgData.nodeInfo.type,
         providerId: orgData.nodeInfo.providerId,
-        children: orgData.children.map(childOrgData => this.processTreeData(childOrgData))
-      };
-      return node;
+        children: orgData.children.map(childOrgData =>
+          this.processTreeData(childOrgData)
+        )
+      }
+      return node
     },
     handleNodeClick(data) {
-      debugger
-      console.log(data)
+      // debugger
+      console.log(data, '+++')
+      this.departmentIds = data.nodeId
+      this.providerIds = data.providerId
       // type 1：单位 2：部门 3：岗位
       this.currentOrgData = data
       this.getAuthorizeList()
     },
     getAuthorizeList() {
       this.loading = true
-      getOrgAuthorizeListeApi(this.currentOrgData.providerId, this.currentOrgData.nodeId).then(res => {
+      getOrgAuthorizeListeApi(
+        this.currentOrgData.providerId,
+        this.currentOrgData.nodeId
+      ).then(res => {
         if (res.code === 200) {
           this.authorizeList = res.data
           this.loading = false
@@ -228,40 +314,41 @@ export default {
       const sendData = {
         ids: this.checkedAuthorizeObjs.map(obj => obj.id),
         isManage: this.manageChecked ? 1 : 0,
-        isShow: this.showChecked ? 1 : 0,
+        isShow: this.showChecked ? 1 : 0
       }
       setAuthorizeApi(sendData).then(res => {
         if (res.code === 200) {
           this.$message.success('授权成功')
-          this.permissionDialogVisible = false;
+          this.permissionDialogVisible = false
           this.getAuthorizeList()
         }
       })
     },
-    addPersonClicked() {
-
-    },
+    addPersonClicked() {},
     deleteAuthorize() {
-      this.$confirm('确认删除授权节点吗?', "警告", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning"
-        }).then(() => {
+      this.$confirm('确认删除授权节点吗?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
           const sendData = {
-            ids: this.checkedAuthorizeObjs.map(obj => obj.id),
+            ids: this.checkedAuthorizeObjs.map(obj => obj.id)
           }
-          return deleteAuthorizeApi(sendData);
-        }).then(res => {
+          return deleteAuthorizeApi(sendData)
+        })
+        .then(res => {
           if (res.code === 200) {
             this.$message.success('删除成功')
             this.getAuthorizeList()
           }
-        }).catch(function() {});
-
+        })
+        .catch(function() {})
     }
   },
   created() {
-    this.getOrgTree();
+    this.getOrgTree()
+    this.getTopRoot()
   }
 }
 </script>
