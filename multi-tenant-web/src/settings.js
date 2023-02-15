@@ -1,5 +1,5 @@
 module.exports = {
-  title: 'Multi-tenant',
+  title: 'dcdemo',
 
   /**
    * 是否系统布局配置

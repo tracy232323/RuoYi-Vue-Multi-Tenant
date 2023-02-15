@@ -26,7 +26,7 @@ export default {
   },
   data() {
     return {
-      title: 'Multi-tenant',
+      title: 'dcdemo',
       logo: logoImg
     }
   }

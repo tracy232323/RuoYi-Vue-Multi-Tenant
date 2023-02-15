@@ -1,7 +1,8 @@
 <template>
   <div class="dashboard-editor-container">
+    <img style="width:100%;" src="@/assets/image/home.png"/>
 
-    <panel-group @handleSetLineChartData="handleSetLineChartData" />
+    <!-- <panel-group @handleSetLineChartData="handleSetLineChartData" />
 
     <el-row style="background:#fff;padding:16px 16px 0;margin-bottom:32px;">
       <h4>前12个月工单量</h4>
@@ -9,7 +10,7 @@
       <div class="chart-wrapper" v-if="!!monthData && monthData.length > 0">
         <bar-chart :month-data="monthData" :month-str-list="monthStrList" />
       </div>
-    </el-row>
+    </el-row> -->
 
   </div>
 </template>

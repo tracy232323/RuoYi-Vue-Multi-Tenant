@@ -1,4 +1,4 @@
-import { login, logout, getInfo } from '@/api/login'
+import { login, ssoLogin, logout, getInfo } from '@/api/login'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 
 const user = {
@@ -25,6 +25,12 @@ const user = {
     },
     SET_PERMISSIONS: (state, permissions) => {
       state.permissions = permissions
+    },
+    SET_PROVIDERID: (state, providerId) => {
+      state.providerId = providerId
+    },
+    SET_USERID: (state, userId) => {
+      state.userId = userId
     }
   },
 
@@ -37,6 +43,18 @@ const user = {
       const uuid = userInfo.uuid
       return new Promise((resolve, reject) => {
         login(username, password, code, uuid).then(res => {
+          setToken(res.token)
+          commit('SET_TOKEN', res.token)
+          resolve()
+        }).catch(error => {
+          reject(error)
+        })
+      })
+    },
+
+    SsoLogin({ commit }, code) {
+      return new Promise((resolve, reject) => {
+        ssoLogin(code).then(res => {
           setToken(res.token)
           commit('SET_TOKEN', res.token)
           resolve()
@@ -60,6 +78,8 @@ const user = {
           }
           commit('SET_NAME', user.userName)
           commit('SET_AVATAR', avatar)
+          commit('SET_PROVIDERID', res.providerId)
+          commit('SET_USERID', res.userId)
           resolve(res)
         }).catch(error => {
           reject(error)

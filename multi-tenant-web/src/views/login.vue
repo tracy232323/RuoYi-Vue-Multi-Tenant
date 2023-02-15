@@ -1,7 +1,7 @@
 <template>
   <div class="login">
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">Multi-tenant</h3>
+      <h3 class="title">dcdemo</h3>
       <el-form-item prop="username">
         <el-input v-model="loginForm.username" type="text" auto-complete="off" placeholder="账号">
           <svg-icon slot="prefix" icon-class="user" class="el-input__icon input-icon" />
@@ -81,20 +81,34 @@ export default {
         code: [{ required: true, trigger: "change", message: "验证码不能为空" }]
       },
       loading: false,
-      redirect: undefined
+      redirect: undefined,
+      isSsoLogin: false,
+      ssoCode: undefined,
     };
   },
   watch: {
     $route: {
       handler: function(route) {
-        this.redirect = route.query && route.query.redirect;
+        const redirect = route.query && route.query.redirect;
+        const codePattern = redirect.match(/code=[^&]+/g);
+        if (codePattern && codePattern.length) {
+          this.redirect = redirect.replace(/code=[^&]+/g, "");
+          this.isSsoLogin = true;
+          this.ssoCode = codePattern[0].split("=")[1]; 
+        } else {
+          this.redirect = redirect;
+        }
       },
       immediate: true
     }
   },
   created() {
-    this.getCode();
-    this.getCookie();
+    if (this.isSsoLogin) {
+      this.handleSsoLogin()
+    } else {
+      this.getCode();
+      this.getCookie();
+    }
   },
   methods: {
     getCode() {
@@ -137,6 +151,13 @@ export default {
             });
         }
       });
+    },
+    handleSsoLogin() {
+      this.$store.dispatch('SsoLogin', this.ssoCode).then(res => {
+        this.$router.push({ path: this.redirect || "/" });
+      }).catch(() => {
+
+      })
     }
   }
 };

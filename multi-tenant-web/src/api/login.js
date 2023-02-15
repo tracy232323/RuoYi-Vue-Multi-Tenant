@@ -15,6 +15,18 @@ export function login(username, password, code, uuid) {
   })
 }
 
+// sso 登录
+export function ssoLogin(code) {
+  const data = {
+    code
+  }
+  return request({
+    url: '/ssoLogin',
+    method: 'post',
+    data: data
+  })
+}
+
 // 获取用户详细信息
 export function getInfo() {
   return request({
