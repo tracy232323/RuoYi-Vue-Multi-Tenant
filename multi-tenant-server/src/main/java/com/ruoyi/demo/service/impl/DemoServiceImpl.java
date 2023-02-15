@@ -79,7 +79,7 @@ public class DemoServiceImpl implements DemoService {
         ArrayList<MapUserNode> addNodes = new ArrayList<>();
         List<SysOperLog> addOperLogs = new ArrayList<>();
         for (ReqUserAuth.UserAuth userAuth : list) {
-            NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getProviderId(), userAuth.getOrgId());
+            NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getNodeProviderId(), userAuth.getOrgId());
             // 构建当前人员所在组织路径
             String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
             String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, userAuth.getProviderId(), userAuth.getUserId());
@@ -94,7 +94,8 @@ public class DemoServiceImpl implements DemoService {
                     .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
                     .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
                     .build();
-            String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getOrgId());
+
+            String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getNodeProviderId(), userAuth.getOrgId());
             nodePath = commonUtil.buildUserPathFromTree(nodePath);
             addNodes.add(mapUserNode);
             SysOperLog sysOperLog = new SysOperLog();
@@ -120,7 +121,7 @@ public class DemoServiceImpl implements DemoService {
         if (BuildTreeUtil.rootTree.containsKey(key)) {
             return BuildTreeUtil.rootTree.get(key);
         }
-        // 检索出用户以及用户全部岗位的节点，进行一个去重并集之后再进行树的构建
+        // 检索出用户以及用户全部岗位的节点，进行树的构建
         List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(providerId, userId);
 //        String userAllPosition = apiOperationUtil.getUserAllPosition(ApiOperationConstant.GET_USER_ALL_POSITION_URL, providerId, userId);
 //        List<JSONObject> userPositions = new JSONArray(userAllPosition).toList(JSONObject.class);

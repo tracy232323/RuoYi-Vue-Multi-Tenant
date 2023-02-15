@@ -15,4 +15,6 @@ public interface MapUserNodeService  {
     public List<MapUserNode> selectAll();
 
     void deleteByNodeIds(List<Integer> ids);
+
+    MapUserNode selectOne(String providerId, Integer userId, Integer id);
 }

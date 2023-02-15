@@ -96,6 +96,21 @@
         WHERE id = #{id}
     </select>
 
+    <select id="selectListByFatherId" resultMap="BaseResultMap">
+        SELECT
+            id,
+            type,
+            father_id,
+            node_id,
+            name,
+            `order`,
+            provider_id,
+            update_time,
+            create_time,
+            deleted
+        FROM node_info
+        WHERE father_id = #{id} AND provider_id = #{providerId}
+    </select>
 
     <select id="selectByMap" resultMap="BaseResultMap">
         SELECT

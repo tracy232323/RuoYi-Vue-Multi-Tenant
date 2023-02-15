@@ -28,6 +28,8 @@ public interface NodeInfoMapper {
     public NodeInfo selectOne(@Param("providerId") String providerId, @Param("nodeId") Integer nodeId);
 
     NodeInfo selectOneById(Integer id);
+
+    List<NodeInfo> selectListByFatherId(NodeInfo nodeInfo);
 }
 
 

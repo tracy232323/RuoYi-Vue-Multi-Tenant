@@ -21,4 +21,8 @@ public interface NodeInfoService {
     List<NodeInfo> selectMapByPositionId(String providerId, Integer positionId);
 
     NodeInfo selectOne(NodeInfo nodeInfo);
+
+    public List<NodeInfo> selectListByFatherId(NodeInfo nodeInfo);
+
+    NodeInfo selectByNodeId(Integer fatherId);
 }

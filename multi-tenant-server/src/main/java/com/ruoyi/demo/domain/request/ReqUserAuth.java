@@ -24,5 +24,7 @@ public class ReqUserAuth implements Serializable {
         private Integer orgId;
         @ApiModelProperty("人员所在的岗位id")
         private Integer positionId;
+        @ApiModelProperty("节点所在的二级单位")
+        private String nodeProviderId;
     }
 }
