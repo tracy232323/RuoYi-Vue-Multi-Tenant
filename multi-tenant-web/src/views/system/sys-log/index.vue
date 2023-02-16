@@ -42,7 +42,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="状态" prop="status">
+      <!-- <el-form-item label="状态" prop="status">
         <el-select
           v-model="queryParams.status"
           placeholder="操作状态"
@@ -57,7 +57,7 @@
             :value="dict.dictValue"
           />
         </el-select>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item label="操作时间">
         <el-date-picker
           v-model="dateRange"
@@ -161,13 +161,13 @@
         prop="operInfo"
         :show-overflow-tooltip="true"
       />
-      <el-table-column
+      <!-- <el-table-column
         label="操作状态"
         align="center"
         prop="status"
         :formatter="statusFormat"
         width="100px"
-      />
+      /> -->
       <el-table-column
         label="操作日期"
         align="center"
@@ -182,6 +182,7 @@
         label="操作"
         align="center"
         class-name="small-padding fixed-width"
+        width="300px"
       >
         <template slot-scope="scope">
           <el-button

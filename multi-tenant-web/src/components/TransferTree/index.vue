@@ -90,7 +90,7 @@
       </div>
       <span slot="footer" class="dialog-footer">
         <!-- {{ selectArr }} -->
-        部门id: {{ departmentIds }}====组织id： {{ providerIds }}
+        <!-- 部门id: {{ departmentIds }}====组织id： {{ providerIds }} -->
         <el-button type="primary" @click="confirmClick" :disabled="btnConfirm"
           >确 定</el-button
         >
