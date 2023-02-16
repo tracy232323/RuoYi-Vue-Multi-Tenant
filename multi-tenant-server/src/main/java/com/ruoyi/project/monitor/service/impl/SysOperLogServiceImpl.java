@@ -10,6 +10,7 @@ import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.mapper.MapUserNodeMapper;
 import com.ruoyi.framework.redis.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.ruoyi.project.monitor.domain.SysOperLog;
 import com.ruoyi.project.monitor.mapper.SysOperLogMapper;
@@ -30,7 +31,7 @@ public class SysOperLogServiceImpl implements ISysOperLogService
     @Autowired
     private MapUserNodeMapper mapUserNodeMapper;
     @Autowired
-    private RedisCache redisCache;
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 新增操作日志
@@ -50,27 +51,25 @@ public class SysOperLogServiceImpl implements ISysOperLogService
      * @return 操作日志集合
      */
     @Override
-    public List<SysOperLog> selectOperLogList(SysOperLog operLog)
+    public List<SysOperLog> selectOperLogList(SysOperLog operLog,String providerId, Integer userId)
     {
-        String operName = operLog.getOperName();
-        Object cacheObject = redisCache.getCacheObject(operName);
-        MapUserNode mapUserNode = new MapUserNode();
-        if (StringUtils.isEmpty(cacheObject)) {
-            throw new CustomException("检索失败，当前无登陆用户");
+//        MapUserNode mapUserNode = new MapUserNode();
+//        mapUserNode.setCompanyId(providerId);
+//        mapUserNode.setUserId(userId);
+//        mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_MANAGER_VALUE);
+//        mapUserNode.setNodeId(0);
+        MapUserNode mapUserNode = mapUserNodeMapper.selectOne(providerId, userId, 0);
+        if( !StringUtils.isEmpty(mapUserNode) ){
+            return operLogMapper.selectOperLogList(operLog);
         }
-        // 查询当前用户拥有多少预览权限节点
-        String[] arr = cacheObject.toString().split("\\|");
-        mapUserNode.setCompanyId(arr[0]);
-        mapUserNode.setUserId(Integer.valueOf(arr[1]));
-        mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_SHOW_VALUE);
-        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByShow(mapUserNode);
-        ArrayList<Integer> nodeIds = new ArrayList<>();
-        Iterator<MapUserNode> iterator = mapUserNodes.iterator();
-        while (iterator.hasNext()) {
-            MapUserNode next = iterator.next();
-            nodeIds.add(next.getNodeId());
-        }
-        operLog.setNodeIds(nodeIds);
+//        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByManager(mapUserNode);
+//        ArrayList<Integer> nodeIds = new ArrayList<>();
+//        Iterator<MapUserNode> iterator = mapUserNodes.iterator();
+//        while (iterator.hasNext()) {
+//            MapUserNode next = iterator.next();
+//            nodeIds.add(next.getNodeId());
+//        }
+//        operLog.setNodeIds(nodeIds);
         return operLogMapper.selectOperLogList(operLog);
     }
 

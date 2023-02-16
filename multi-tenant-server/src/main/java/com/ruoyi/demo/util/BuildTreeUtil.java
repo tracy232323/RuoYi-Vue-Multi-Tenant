@@ -5,9 +5,11 @@ import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.domain.TreeNode;
+import com.ruoyi.demo.service.NodeInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,6 +29,8 @@ public class BuildTreeUtil {
 
     @Autowired
     private CommonUtil commonUtil;
+    @Autowired
+    private NodeInfoService nodeInfoService;
 
     public static Map<String,String> rootTree = new HashMap<String,String>();
 
@@ -86,5 +90,16 @@ public class BuildTreeUtil {
         TreeNode fatherNode = nodeInfoMap.get(fatherId);
         Integer insertIndex = commonUtil.getInsertIndex(fatherNode.getChildren(), nodeInfo.getOrder());
         fatherNode.getChildren().add(insertIndex,treeNode);
+    }
+
+    public boolean saveGrandfatherNode(HashMap<IdObject, NodeInfo> allNodeInfoMap, NodeInfo nodeInfo) {
+        NodeInfo node = nodeInfoService.selectByNodeId(nodeInfo);
+        if (StringUtils.isEmpty(node)) {
+            return true;
+        }
+        if (allNodeInfoMap.containsKey(new IdObject(node.getNodeId(), node.getProviderId()))) {
+            return false;
+        }
+        return saveGrandfatherNode(allNodeInfoMap, node);
     }
 }

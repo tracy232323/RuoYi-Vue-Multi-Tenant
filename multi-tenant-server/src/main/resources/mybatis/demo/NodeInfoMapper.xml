@@ -96,6 +96,25 @@
         WHERE id = #{id}
     </select>
 
+    <select id="selectOneByNodeIdAndProviderId" resultMap="BaseResultMap">
+        SELECT
+            id,
+            type,
+            father_id,
+            node_id,
+            name,
+            `order`,
+            provider_id,
+            update_time,
+            create_time,
+            deleted
+        FROM node_info
+        WHERE node_id = #{fatherId}
+        <if test="providerId != null and providerId !=''">
+            AND provider_id = #{providerId}
+        </if>
+    </select>
+
     <select id="selectListByFatherId" resultMap="BaseResultMap">
         SELECT
             id,
@@ -109,7 +128,11 @@
             create_time,
             deleted
         FROM node_info
-        WHERE father_id = #{id} AND provider_id = #{providerId}
+        WHERE father_id = #{nodeId}
+        <if test="providerId != 'demo'">
+            AND provider_id = #{providerId}
+        </if>
+
     </select>
 
     <select id="selectByMap" resultMap="BaseResultMap">
@@ -124,7 +147,7 @@
                 map_user_node
             WHERE
                 company_id = #{companyId}
-            AND user_id = #{userId}
+            AND user_id = #{userId} AND is_show = 1
         ) a  ON a.node_id = node_info.id
     </select>
 

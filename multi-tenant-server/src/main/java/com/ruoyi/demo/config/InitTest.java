@@ -17,27 +17,25 @@ import com.ruoyi.demo.service.RootUserService;
 import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.demo.util.CommonUtil;
-import com.ruoyi.framework.redis.RedisCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
-
 import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @ClassName: InitRootAuthorityConfig
- * @Description: 项目启动时，进行Root账户的初始化
+ * @ClassName: InitTest
+ * @Description: TODO
  * @Author: CodeDan
- * @Date: 2023/2/8 09:19
+ * @Date: 2023/2/15 09:38
  * @Version: 1.0.0
  **/
 @Configuration
 @Slf4j
-public class InitRootAuthorityConfig {
+public class InitTest {
+
     @Autowired
     private ApiOperationUtil apiOperationUtil;
     @Autowired
@@ -51,31 +49,7 @@ public class InitRootAuthorityConfig {
     @Autowired
     private CommonUtil commonUtil;
 
-
-    /**
-     * 插入根节点
-     */
-//    @PostConstruct
-//    public void initNodeInfo(){
-//        NodeInfo nodeInfo = getRootNode();
-//        NodeInfo tempNode = nodeInfoService.selectOne(nodeInfo);
-//        if(StringUtils.isEmpty(tempNode)){
-//            nodeInfoService.insertBatch(Arrays.asList(nodeInfo));
-//        }
-//    }
-
-    public NodeInfo getRootNode(){
-        NodeInfo nodeInfo = new NodeInfo();
-        nodeInfo.setNodeId(0);
-        nodeInfo.setFatherId(-1);
-        nodeInfo.setName("总公司");
-        nodeInfo.setOrder(1);
-        nodeInfo.setProviderId("demo");
-        nodeInfo.setType(1);
-        return nodeInfo;
-    }
-
-//    @PostConstruct
+    @PostConstruct
     public void init() {
         apiOperationUtil.getAccessToken(
                 ApiOperationConstant.GET_ACCESS_TOKEN_URL,
@@ -86,7 +60,7 @@ public class InitRootAuthorityConfig {
         String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
         List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
         List<NodeInfo> tempList = new ArrayList<>();
-        tempList.add(getRootNode());
+        tempList.add(commonUtil.getRootNode());
         for (JSONObject organizationInfo : organizationInfos) {
             String providerId = organizationInfo.get("id").toString();
             JSONObject root = new JSONObject(organizationInfo.get("root"));
@@ -114,20 +88,18 @@ public class InitRootAuthorityConfig {
         // 查询有多少个root账号,就给他们都授权了
         List<RootUser> rootUsers = rootUserService.selectAll();
         for (RootUser rootUser : rootUsers) {
-            if (!reduce1.isEmpty()) {
-                // 获取主要岗位
-                String mainPositionByUser = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, rootUser.getProviderId(), rootUser.getUserId());
-                Integer id = new JSONObject(mainPositionByUser).get("id", Integer.class);
-                // 根据主要岗位获取路径
-                String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, rootUser.getProviderId(), id);
-                String path = commonUtil.buildUserPathFromTree(orgPath);
-                // 获取当前用户名称
-                String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, rootUser.getProviderId(), rootUser.getUserId());
-                String name = new JSONObject(userInfo).get("name",String.class);
-                // 拼接获取path
-                path = path + " " + name;
-                grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, reduce1,path);
-            }
+            // 获取主要岗位
+            String mainPositionByUser = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, rootUser.getProviderId(), rootUser.getUserId());
+            Integer id = new JSONObject(mainPositionByUser).get("id", Integer.class);
+            // 根据主要岗位获取路径
+            String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, rootUser.getProviderId(), id);
+            String path = commonUtil.buildUserPathFromTree(orgPath);
+            // 获取当前用户名称
+            String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, rootUser.getProviderId(), rootUser.getUserId());
+            String name = new JSONObject(userInfo).get("name", String.class);
+            // 拼接获取path
+            path = path + " " + name;
+            grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, commonUtil.getRootNode(), path);
         }
         // 看看需要删除多少节点
         // 差集 (list2 - list1)
@@ -142,56 +114,50 @@ public class InitRootAuthorityConfig {
             nodeInfoService.deleteByIds(ids);
         }
         // 第四步，根据Root账号去遍历出他们被授权的节点结合
+        TreeNode treeNode = new TreeNode();
+        treeNode.setNodeInfo(commonUtil.getRootNode());
         for (RootUser rootUser : rootUsers) {
-            List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(rootUser.getProviderId(), rootUser.getUserId());
             // 第五步：根据此集合构建树结构
-            String treeJSON = buildTreeUtil.buildShowTree(nodeInfos);
+            log.info("正在构建树");
+            String treeJSON = buildShowTree(commonUtil.getRootNode());
+            log.info("构建完成");
             // 第六步：存放内存即可
             String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
-            BuildTreeUtil.rootTree.put(key,treeJSON);
-//            stringRedisTemplate.opsForValue().set(key, treeJSON);
+            BuildTreeUtil.rootTree.put(key, treeJSON);
         }
     }
 
-    public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, List<NodeInfo> nodeInfos, String path) {
+
+    public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, NodeInfo nodeInfo, String path) {
         // 使用iterator在大数据量时，效率高
-        Iterator<NodeInfo> iterator = nodeInfos.iterator();
-        List<MapUserNode> tempList = new ArrayList<>();
-        while (iterator.hasNext()) {
-            NodeInfo next = iterator.next();
-            if( ApiOperationConstant.TYPE_POSITION.equals(next.getType()) ){
-                continue;
-            }
-            MapUserNode mapUserNode = new MapUserNode();
-            mapUserNode.setCompanyId(providerId);
-            mapUserNode.setUserId(userId);
-            mapUserNode.setNodeId(next.getId());
-            mapUserNode.setPath(path);
-            // 判断授权
-            if (ApiOperationConstant.AUTHORITY_MANAGER.equals(type)) {
-                mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_MANAGER_VALUE);
-                mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_SHOW_VALUE);
-            } else if (ApiOperationConstant.AUTHORITY_SHOW.equals(type)) {
-                mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE);
-                mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_SHOW_VALUE);
-            } else {
-                mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE);
-                mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE);
-            }
-            tempList.add(mapUserNode);
+        MapUserNode node = mapUserNodeService.selectOne(providerId, userId, nodeInfo.getId());
+        if (!StringUtils.isEmpty(node)) {
+            return;
         }
-        if (tempList.size() > 1000) {
-            List<List<MapUserNode>> partitions = Lists.partition(tempList, 1000);
-            for (List<MapUserNode> partition : partitions) {
-                mapUserNodeService.insertBatch(partition);
-            }
+        MapUserNode mapUserNode = new MapUserNode();
+        mapUserNode.setCompanyId(providerId);
+        mapUserNode.setUserId(userId);
+        mapUserNode.setNodeId(nodeInfo.getId());
+        mapUserNode.setPath(path);
+        // 判断授权
+        if (ApiOperationConstant.AUTHORITY_MANAGER.equals(type)) {
+            mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_MANAGER_VALUE);
+            mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_SHOW_VALUE);
+        } else if (ApiOperationConstant.AUTHORITY_SHOW.equals(type)) {
+            mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE);
+            mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_SHOW_VALUE);
+        } else {
+            mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE);
+            mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE);
         }
+        mapUserNodeService.insertBatch(Arrays.asList(mapUserNode));
     }
 
     /**
      * 解析组织树，获取每个节点的信息
-     * @param nodes 节点集合
-     * @param data 数据
+     *
+     * @param nodes      节点集合
+     * @param data       数据
      * @param providerId
      * @param id
      */
@@ -223,5 +189,45 @@ public class InitRootAuthorityConfig {
         Integer order = data.get(NodeFieldConstant.ORDER_FIELD_NAME, Integer.class);
         NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
         return nodeInfo;
+    }
+
+    public String buildShowTree(NodeInfo rootNode) {
+        List<NodeInfo> nodeInfos = nodeInfoService.selectListByFatherId(rootNode);
+        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
+        TreeNode rootTree = new TreeNode();
+        rootTree.setNodeInfo(rootNode);
+        while (nodeInfoIterator.hasNext()) {
+            NodeInfo node = nodeInfoIterator.next();
+            buildShowTree(node,rootTree);
+        }
+        return JSONUtil.toJsonStr(rootTree);
+    }
+
+    public void buildShowTree(NodeInfo nodeInfo,TreeNode rootNode) {
+        String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
+        // 遍历organizationChildren将其封装为TreeNode
+        JSONObject childrenJSON = new JSONObject(organizationChildren);
+        getOrganizationChildren(rootNode,childrenJSON,nodeInfo.getProviderId(),commonUtil.getRootNode().getNodeId());
+    }
+
+    public void getOrganizationChildren(TreeNode treeNode, JSONObject data, String providerId, Integer id) {
+        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
+        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
+            return ;
+        }
+        // 提取字段组成NodeInfo
+        NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
+        TreeNode currentTreeNode = new TreeNode();
+        currentTreeNode.setNodeInfo(nodeInfo);
+        Integer insertIndex = commonUtil.getInsertIndex(treeNode.getChildren(), nodeInfo.getOrder());
+        treeNode.getChildren().add(insertIndex,currentTreeNode);
+        // 判断是否存在children，没有或者为数量为空，则返回上一层，有则进行数组JSON解析，并迭代
+        String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
+        if (!"null".equals(childrenJson)) {
+            List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
+            for (JSONObject child : childrens) {
+                getOrganizationChildren(currentTreeNode, child, providerId, nodeInfo.getNodeId());
+            }
+        }
     }
 }

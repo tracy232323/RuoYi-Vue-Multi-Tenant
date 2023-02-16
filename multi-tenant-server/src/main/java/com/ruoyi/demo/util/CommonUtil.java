@@ -5,6 +5,7 @@ import cn.hutool.json.JSONObject;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.domain.TreeNode;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ import java.util.List;
  **/
 @Component
 public class CommonUtil {
+
+    private static NodeInfo rootNode;
 
     /**
      * 根据获取的组织列表，构建一个用户所在组织路径
@@ -54,6 +57,22 @@ public class CommonUtil {
             }
         }
         return rightIndex + 1;
+    }
+
+    public NodeInfo getRootNode() {
+        if(!StringUtils.isEmpty(rootNode)){
+            return rootNode;
+        }
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setId(1);
+        nodeInfo.setNodeId(0);
+        nodeInfo.setFatherId(-1);
+        nodeInfo.setName("总公司");
+        nodeInfo.setOrder(1);
+        nodeInfo.setProviderId("demo");
+        nodeInfo.setType(1);
+        rootNode = nodeInfo;
+        return nodeInfo;
     }
 
 }

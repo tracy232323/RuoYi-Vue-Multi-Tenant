@@ -1,13 +1,16 @@
 package com.ruoyi.demo.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.ruoyi.common.exception.CustomException;
 import com.ruoyi.demo.constant.ApiOperationConstant;
+import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.constant.RedisConstant;
+import com.ruoyi.demo.domain.TreeNode;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
@@ -18,17 +21,15 @@ import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.demo.util.CommonUtil;
+import com.ruoyi.demo.util.IdObject;
 import com.ruoyi.framework.redis.RedisCache;
 import com.ruoyi.project.monitor.domain.SysOperLog;
 import com.ruoyi.project.monitor.mapper.SysOperLogMapper;
-import com.ruoyi.project.monitor.service.ISysOperLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.util.StringUtils;
@@ -72,14 +73,27 @@ public class DemoServiceImpl implements DemoService {
     @Override
     public void addAuthUser(ReqUserAuth reqUserAuth, String providerId, Integer userId) {
         // 获取当前登陆人员信息
-        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
-        String loginUserName = new JSONObject(loginUser).get("name",String.class);
         List<ReqUserAuth.UserAuth> list = reqUserAuth.getList();
+        if( list.isEmpty() ){
+            throw new CustomException("无添加人员");
+        }
         //需要插入的人员
         ArrayList<MapUserNode> addNodes = new ArrayList<>();
         List<SysOperLog> addOperLogs = new ArrayList<>();
+        NodeInfo nodeInfo = null;
+        ReqUserAuth.UserAuth tempUserAuth = list.get(0);
+        nodeInfo = nodeInfoMapper.selectOne(tempUserAuth.getNodeProviderId(), tempUserAuth.getOrgId());
+        // 首先校验权限，即在当前节点，或者是前序节点中是否存在管理权限
+        Boolean aBoolean = checkAuthority(nodeInfo,providerId,userId);
+        if( Boolean.FALSE.equals(aBoolean) ){
+            throw new CustomException("无管理权限");
+        }
+        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
+        String loginUserName = new JSONObject(loginUser).get("name", String.class);
+        if ( StringUtils.isEmpty(nodeInfo) ){
+            throw new CustomException("添加节点不存在");
+        }
         for (ReqUserAuth.UserAuth userAuth : list) {
-            NodeInfo nodeInfo = nodeInfoMapper.selectOne(userAuth.getNodeProviderId(), userAuth.getOrgId());
             // 构建当前人员所在组织路径
             String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getProviderId(), userAuth.getPositionId());
             String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, userAuth.getProviderId(), userAuth.getUserId());
@@ -94,7 +108,6 @@ public class DemoServiceImpl implements DemoService {
                     .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
                     .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
                     .build();
-
             String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, userAuth.getNodeProviderId(), userAuth.getOrgId());
             nodePath = commonUtil.buildUserPathFromTree(nodePath);
             addNodes.add(mapUserNode);
@@ -107,7 +120,7 @@ public class DemoServiceImpl implements DemoService {
             sysOperLog.setOperName(loginUserName);
 //            sysOperLog.setDeptName("神州数码");
             sysOperLog.setNodeId(userAuth.getOrgId());
-            sysOperLog.setOperInfo("在"+nodePath+"添加"+path+"人员");
+            sysOperLog.setOperInfo("在" + nodePath + "添加" + path + "人员");
             addOperLogs.add(sysOperLog);
         }
         mapUserNodeMapper.insertBatch(addNodes);
@@ -121,26 +134,44 @@ public class DemoServiceImpl implements DemoService {
         if (BuildTreeUtil.rootTree.containsKey(key)) {
             return BuildTreeUtil.rootTree.get(key);
         }
-        // 检索出用户以及用户全部岗位的节点，进行树的构建
+        // 检索出用户拥有权限的节点
         List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(providerId, userId);
-//        String userAllPosition = apiOperationUtil.getUserAllPosition(ApiOperationConstant.GET_USER_ALL_POSITION_URL, providerId, userId);
-//        List<JSONObject> userPositions = new JSONArray(userAllPosition).toList(JSONObject.class);
-//        for( JSONObject userPosition : userPositions ){
-//            Integer positionId = userPosition.get(NodeFieldConstant.POSITION_ID, Integer.class);
-//            List<NodeInfo> tempNodeInfos = nodeInfoService.selectMapByPositionId(providerId, positionId);
-//            nodeInfos.addAll(tempNodeInfos);
-//            // 进行去重并集处理，获取新的nodeInfos
-//            nodeInfos = nodeInfos.stream().distinct().collect(Collectors.toList());
-//        }
-        // 构建树结构
-        return buildTreeUtil.buildShowTree(nodeInfos);
+        // 可能存在父子节点均有不同权限的情况，比如zld在A节点有浏览权限，B节点有管理权限，所以要将B去掉，只构建A即可
+        HashMap<IdObject, NodeInfo> infoHashMap = new HashMap<>();
+        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
+        while (nodeInfoIterator.hasNext()) {
+            NodeInfo next = nodeInfoIterator.next();
+            infoHashMap.put(new IdObject(next.getNodeId(), next.getProviderId()), next);
+        }
+        Set<Map.Entry<IdObject, NodeInfo>> entries = infoHashMap.entrySet();
+        Iterator<Map.Entry<IdObject, NodeInfo>> entryIterator = entries.iterator();
+        while (entryIterator.hasNext()) {
+            Map.Entry<IdObject, NodeInfo> next = entryIterator.next();
+            boolean b = buildTreeUtil.saveGrandfatherNode(infoHashMap, next.getValue());
+            if (!b) {
+                nodeInfos.remove(next);
+            }
+        }
+        // 去除好之后进行树的构建
+        TreeNode root = new TreeNode();
+        root.setNodeInfo(commonUtil.getRootNode());
+        return buildShowTree(nodeInfos, root);
     }
 
     @Override
-    public void addAuth(ReqAuth reqAuth,String providerId, Integer userId) {
+    public void addAuth(ReqAuth reqAuth, String providerId, Integer userId) {
         Integer[] ids = reqAuth.getIds();
+        if( ids.length <= 0 ){
+            throw new CustomException("无修改人员");
+        }
+        MapUserNode tempNodeMap = mapUserNodeMapper.selectOneById(ids[0]);
+        NodeInfo tempNode = nodeInfoMapper.selectOneById(tempNodeMap.getNodeId());
+        Boolean aBoolean = checkAuthority(tempNode,providerId,userId);
+        if( Boolean.FALSE.equals(aBoolean) ){
+            throw new CustomException("无管理权限");
+        }
         String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
-        String loginUserName = new JSONObject(loginUser).get("name",String.class);
+        String loginUserName = new JSONObject(loginUser).get("name", String.class);
         for (Integer id : ids) {
             mapUserNodeMapper.update2Auth(id, reqAuth.getIsManage(), reqAuth.getIsShow());
             // 根据id获取映射表信息，从中获取nodeId
@@ -149,32 +180,32 @@ public class DemoServiceImpl implements DemoService {
             NodeInfo nodeInfo = nodeInfoMapper.selectOneById(mapUserNode.getId());
             String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
             nodePath = commonUtil.buildUserPathFromTree(nodePath);
-            StringBuilder info = new StringBuilder("在"+nodePath+"对"+mapUserNode.getPath());
+            StringBuilder info = new StringBuilder("在" + nodePath + "对" + mapUserNode.getPath());
             StringBuilder str = new StringBuilder("");
-            if( reqAuth.getIsManage().equals(ApiOperationConstant.AUTHORITY_MANAGER_VALUE) ){
+            if (reqAuth.getIsManage().equals(ApiOperationConstant.AUTHORITY_MANAGER_VALUE)) {
                 str.append(" 管理权限 ");
             }
-            if( reqAuth.getIsShow().equals(ApiOperationConstant.AUTHORITY_SHOW_VALUE) ){
+            if (reqAuth.getIsShow().equals(ApiOperationConstant.AUTHORITY_SHOW_VALUE)) {
                 str.append(" 浏览权限 ");
             }
-            if(StringUtils.isEmpty(str)){
-                str.insert(0,"授予");
+            if (!StringUtils.isEmpty(str)) {
+                str.insert(0, "授予");
                 info.append(str);
             }
             StringBuilder str1 = new StringBuilder("");
-            if( !reqAuth.getIsManage().equals(ApiOperationConstant.AUTHORITY_MANAGER_VALUE) ){
+            if (reqAuth.getIsManage().equals(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)) {
                 str1.append(" 管理权限 ");
             }
-            if( !reqAuth.getIsShow().equals(ApiOperationConstant.AUTHORITY_SHOW_VALUE) ){
+            if (reqAuth.getIsShow().equals(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)) {
                 str1.append(" 浏览权限 ");
             }
-            if(!StringUtils.isEmpty(str)){
-                str.insert(0,"撤销");
-                info.append(str);
+            if (!StringUtils.isEmpty(str1)) {
+                str1.insert(0, "撤销");
+                info.append(str1);
             }
             SysOperLog sysOperLog = new SysOperLog();
-            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_ADD_NUMBER);
-            sysOperLog.setBusinessType(1);
+            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_MODIFY_AUTHORITY);
+            sysOperLog.setBusinessType(2);
             sysOperLog.setMethod("addAuth");
             sysOperLog.setRequestMethod("POST");
             sysOperLog.setOperatorType(1);
@@ -187,7 +218,7 @@ public class DemoServiceImpl implements DemoService {
     }
 
     @Override
-    public void delAuth(ReqAuth reqAuth,String providerId, Integer userId) {
+    public void delAuth(ReqAuth reqAuth, String providerId, Integer userId) {
 //        String loginName = reqAuth.getLoginName();
 //        Object cacheObject = redisCache.getCacheObject(loginName);
 //        if (StringUtils.isEmpty(cacheObject)) {
@@ -195,11 +226,19 @@ public class DemoServiceImpl implements DemoService {
 //        }
         // 查询当前用户拥有多少预览权限节点
 //        String[] arr = cacheObject.toString().split("\\|");
-        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
-        String loginUserName = new JSONObject(loginUser).get("name",String.class);
         List<Integer> ids = Arrays.asList(reqAuth.getIds());
-        List<SysOperLog> addOperLogs = new ArrayList<>();
-        for( Integer id : ids ){
+        if( ids.isEmpty() ){
+            throw new CustomException("无修改人员");
+        }
+        MapUserNode tempNodeMap = mapUserNodeMapper.selectOneById(ids.get(0));
+        NodeInfo tempNode = nodeInfoMapper.selectOneById(tempNodeMap.getNodeId());
+        Boolean aBoolean = checkAuthority(tempNode,providerId,userId);
+        if( Boolean.FALSE.equals(aBoolean) ){
+            throw new CustomException("无管理权限");
+        }
+        String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
+        String loginUserName = new JSONObject(loginUser).get("name", String.class);        List<SysOperLog> addOperLogs = new ArrayList<>();
+        for (Integer id : ids) {
             // 根据id获取映射表信息，从中获取nodeId
             MapUserNode mapUserNode = mapUserNodeMapper.selectOneById(id);
             // 根据id获取node信息
@@ -207,13 +246,13 @@ public class DemoServiceImpl implements DemoService {
             String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
             nodePath = commonUtil.buildUserPathFromTree(nodePath);
             SysOperLog sysOperLog = new SysOperLog();
-            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_ADD_NUMBER);
-            sysOperLog.setBusinessType(1);
+            sysOperLog.setTitle(ApiOperationConstant.OPERATION_TITLE_DELETE_AUTHORITY);
+            sysOperLog.setBusinessType(3);
             sysOperLog.setMethod("delAuth");
             sysOperLog.setRequestMethod("POST");
             sysOperLog.setOperatorType(1);
             sysOperLog.setOperName(loginUserName);
-            sysOperLog.setOperInfo("删除"+nodePath+"上"+mapUserNode.getPath());
+            sysOperLog.setOperInfo("删除" + nodePath + "上" + mapUserNode.getPath());
             sysOperLog.setNodeId(nodeInfo.getNodeId());
             addOperLogs.add(sysOperLog);
         }
@@ -283,4 +322,70 @@ public class DemoServiceImpl implements DemoService {
         }
     }
 
+
+    public String buildShowTree(List<NodeInfo> nodeInfos, TreeNode rootTree) {
+        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
+        while (nodeInfoIterator.hasNext()) {
+            NodeInfo node = nodeInfoIterator.next();
+            buildShowTree(node, rootTree);
+        }
+        return JSONUtil.toJsonStr(rootTree);
+    }
+
+    public void buildShowTree(NodeInfo nodeInfo, TreeNode rootNode) {
+        String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
+        // 遍历organizationChildren将其封装为TreeNode
+        JSONObject childrenJSON = new JSONObject(organizationChildren);
+        getOrganizationChildren(rootNode, childrenJSON, nodeInfo.getProviderId(), commonUtil.getRootNode().getNodeId());
+    }
+
+    public void getOrganizationChildren(TreeNode treeNode, JSONObject data, String providerId, Integer id) {
+        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
+        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
+            return;
+        }
+        // 提取字段组成NodeInfo
+        NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
+        TreeNode currentTreeNode = new TreeNode();
+        currentTreeNode.setNodeInfo(nodeInfo);
+        Integer insertIndex = commonUtil.getInsertIndex(treeNode.getChildren(), nodeInfo.getOrder());
+        treeNode.getChildren().add(insertIndex, currentTreeNode);
+        // 判断是否存在children，没有或者为数量为空，则返回上一层，有则进行数组JSON解析，并迭代
+        String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
+        if (!"null".equals(childrenJson)) {
+            List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
+            for (JSONObject child : childrens) {
+                getOrganizationChildren(currentTreeNode, child, providerId, nodeInfo.getNodeId());
+            }
+        }
+    }
+
+    public NodeInfo buildNodeInfoByJSON(JSONObject data, String providerId, Integer fatherId) {
+        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
+        Integer id = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
+        String name = data.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
+        Integer order = data.get(NodeFieldConstant.ORDER_FIELD_NAME, Integer.class);
+        NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
+        return nodeInfo;
+    }
+
+    public Boolean checkAuthority(NodeInfo nodeInfo, String providerId, Integer userId) {
+        if( StringUtils.isEmpty(nodeInfo) ){
+            return false;
+        }
+        // 校验当前节点上有没有权限
+        MapUserNode mapUserNode = mapUserNodeMapper.selectOne(providerId, userId, nodeInfo.getId());
+        if( StringUtils.isEmpty(mapUserNode) ){
+            if( nodeInfo.getFatherId() == 0 ){
+                nodeInfo.setProviderId("");
+            }
+            NodeInfo node = nodeInfoService.selectByNodeId(nodeInfo);
+            return checkAuthority(node,providerId,userId);
+        }
+        // 有就返回true
+        if( ApiOperationConstant.AUTHORITY_MANAGER_VALUE.equals(mapUserNode.getIsManage()) ){
+            return true;
+        }
+        return false;
+    }
 }

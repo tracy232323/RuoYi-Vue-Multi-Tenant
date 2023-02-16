@@ -30,6 +30,8 @@ public interface NodeInfoMapper {
     NodeInfo selectOneById(Integer id);
 
     List<NodeInfo> selectListByFatherId(NodeInfo nodeInfo);
+
+    NodeInfo selectOneByNodeIdAndProviderId(NodeInfo nodeInfo);
 }
 
 

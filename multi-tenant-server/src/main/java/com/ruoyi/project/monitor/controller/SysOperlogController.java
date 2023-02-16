@@ -1,8 +1,16 @@
 package com.ruoyi.project.monitor.controller;
 
 import java.util.List;
+
+import com.ruoyi.common.exception.CustomException;
+import com.ruoyi.common.utils.ServletUtils;
+import com.ruoyi.framework.security.LoginUser;
+import com.ruoyi.framework.security.service.TokenService;
+import com.ruoyi.project.system.domain.SysUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.framework.aspectj.lang.annotation.Log;
@@ -24,13 +32,26 @@ public class SysOperlogController extends BaseController
 {
     @Autowired
     private ISysOperLogService operLogService;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private TokenService tokenService;
 
 //    @PreAuthorize("@ss.hasPermi('monitor:operlog:list')")
     @GetMapping("/list")
     public TableDataInfo list(SysOperLog operLog)
     {
         startPage();
-        List<SysOperLog> list = operLogService.selectOperLogList(operLog);
+        LoginUser loginUser = tokenService.getLoginUser(ServletUtils.getRequest());
+        SysUser user = loginUser.getUser();
+        //获取sso登录的用户信息
+        Object cacheObject = stringRedisTemplate.opsForValue().get(user.getUserName());
+        if (StringUtils.isEmpty(cacheObject) ) {
+            throw new CustomException("无此用户，请重新登陆");
+        }
+        String[] arr = cacheObject.toString().split("\\|");
+        List<SysOperLog> list = operLogService.selectOperLogList(operLog,arr[0], Integer.valueOf(arr[1]));
         return getDataTable(list);
     }
 
@@ -39,7 +60,15 @@ public class SysOperlogController extends BaseController
     @GetMapping("/export")
     public AjaxResult export(SysOperLog operLog)
     {
-        List<SysOperLog> list = operLogService.selectOperLogList(operLog);
+        LoginUser loginUser = tokenService.getLoginUser(ServletUtils.getRequest());
+        SysUser user = loginUser.getUser();
+        //获取sso登录的用户信息
+        Object cacheObject = stringRedisTemplate.opsForValue().get(user.getUserName());
+        if (StringUtils.isEmpty(cacheObject) ) {
+            throw new CustomException("无此用户，请重新登陆");
+        }
+        String[] arr = cacheObject.toString().split("\\|");
+        List<SysOperLog> list = operLogService.selectOperLogList(operLog,arr[0], Integer.valueOf(arr[1]));
         ExcelUtil<SysOperLog> util = new ExcelUtil<SysOperLog>(SysOperLog.class);
         return util.exportExcel(list, "操作日志");
     }

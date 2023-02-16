@@ -64,7 +64,7 @@
 
 
     <select id="deleteByNodeIds" parameterType="Integer">
-        delete from map_user_node where node_id in
+        delete from map_user_node where id in
         <foreach collection="ids" open="(" close=")" separator="," item="id">
             #{id}
         </foreach>
@@ -92,6 +92,7 @@
             user_id,
             company_id,
             node_id,
+            path,
             is_manage,
             is_show,
             update_time,

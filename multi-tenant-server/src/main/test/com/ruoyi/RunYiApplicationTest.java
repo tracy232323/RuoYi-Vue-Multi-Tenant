@@ -16,6 +16,9 @@ import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.service.RootUserService;
 import com.ruoyi.demo.util.ApiOperationUtil;
 import com.ruoyi.framework.redis.RedisCache;
+import com.ruoyi.project.monitor.domain.SysOperLog;
+import com.ruoyi.project.monitor.mapper.SysOperLogMapper;
+import com.ruoyi.project.monitor.service.impl.SysOperLogServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,11 +48,24 @@ public class RunYiApplicationTest {
     @Autowired
     private ApiOperationUtil apiOperationUtil;
 
+    @Autowired
+    private SysOperLogMapper sysOperLogMapper;
+
+
+    @Autowired
+    private SysOperLogServiceImpl sysOperLogService;
 
     @Test
     public void test1() {
 
+        redisCache.setCacheObject("123","123");
+
+
+
     }
+//    insert into sys_oper_log(title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time,oper_info)
+//    values (#{title}, #{businessType}, #{method}, #{requestMethod}, #{operatorType}, #{operName}, #{deptName}, #{operUrl}, #{operIp}, #{operLocation}, #{operParam}, #{jsonResult}, #{status}, #{errorMsg}, sysdate(), #{operInfo})
+
 
     @Test
     public void test() {

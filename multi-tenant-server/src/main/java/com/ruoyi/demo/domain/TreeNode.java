@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -23,6 +24,6 @@ public class TreeNode {
 
     private NodeInfo nodeInfo;
 
-    private List<TreeNode> children = new ArrayList<TreeNode>();
+    private List<TreeNode> children = new LinkedList<>();
 
 }

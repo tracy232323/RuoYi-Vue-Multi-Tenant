@@ -24,5 +24,5 @@ public interface NodeInfoService {
 
     public List<NodeInfo> selectListByFatherId(NodeInfo nodeInfo);
 
-    NodeInfo selectByNodeId(Integer fatherId);
+    NodeInfo selectByNodeId(NodeInfo nodeInfo);
 }
