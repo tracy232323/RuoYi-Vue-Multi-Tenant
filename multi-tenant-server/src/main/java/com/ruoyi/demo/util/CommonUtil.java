@@ -48,7 +48,7 @@ public class CommonUtil {
         int rightIndex = list.size() - 1;
         while( leftIndex <= rightIndex ){
             int mid = leftIndex + ((rightIndex - leftIndex) / 2);
-            if (list.get(mid).getNodeInfo().getOrder() > order) {
+            if (list.get(mid).getOrder() > order) {
                 // target 在左区间，所以[low, mid - 1]
                 rightIndex = mid - 1;
             } else{

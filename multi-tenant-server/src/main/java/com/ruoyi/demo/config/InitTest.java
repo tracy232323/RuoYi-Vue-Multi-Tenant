@@ -45,8 +45,6 @@ public class InitTest {
     @Autowired
     private RootUserService rootUserService;
     @Autowired
-    private BuildTreeUtil buildTreeUtil;
-    @Autowired
     private CommonUtil commonUtil;
 
     @PostConstruct
@@ -127,7 +125,6 @@ public class InitTest {
         }
     }
 
-
     public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, NodeInfo nodeInfo, String path) {
         // 使用iterator在大数据量时，效率高
         MapUserNode node = mapUserNodeService.selectOne(providerId, userId, nodeInfo.getId());
@@ -155,7 +152,6 @@ public class InitTest {
 
     /**
      * 解析组织树，获取每个节点的信息
-     *
      * @param nodes      节点集合
      * @param data       数据
      * @param providerId
