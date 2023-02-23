@@ -30,5 +30,17 @@ public interface DemoService {
      */
     List<MapUserNode> getNodeMap(String providerId, Integer nodeId);
 
+    /**
+     * 每个节点去获取子节点，迭代的方式，不合理需求
+     * @param reqRootTree
+     * @return
+     */
     List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree);
+
+    /**
+     * 指定岗位才展示人员
+     * @param reqRootTree
+     * @return
+     */
+    List<JSONObject> getPositionAllUser(ReqRootTree reqRootTree);
 }
