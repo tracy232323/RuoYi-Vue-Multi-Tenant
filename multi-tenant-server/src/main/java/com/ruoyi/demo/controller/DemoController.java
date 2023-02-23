@@ -118,7 +118,7 @@ public class DemoController {
     @ApiOperation("查询节点下所有的用户信息")
     @PostMapping("/getNodeAllUser")
     public List<JSONObject> getNodeAllUser(@RequestBody ReqRootTree reqRootTree) {
-        return demoService.getNodeAllUser(reqRootTree);
+        return demoService.getPositionAllUser(reqRootTree);
     }
 
     @ApiOperation("查询节点下所有的用户信息")
