@@ -62,6 +62,16 @@ public class SysOperLogServiceImpl implements ISysOperLogService
         if( !StringUtils.isEmpty(mapUserNode) ){
             return operLogMapper.selectOperLogList(operLog);
         }
+        // 进入这里，说明不是root用户，需要加入nodeIds的配置
+        // 根据当前登陆的用户信息，查询其拥有哪些授权节点
+        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByManager(providerId, userId);
+        Iterator<MapUserNode> iterator = mapUserNodes.iterator();
+        ArrayList<Integer> nodeIds = new ArrayList<>();
+        while( iterator.hasNext() ){
+            MapUserNode next = iterator.next();
+            nodeIds.add(next.getNodeId());
+        }
+        operLog.setNodeIds(nodeIds);
 //        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByManager(mapUserNode);
 //        ArrayList<Integer> nodeIds = new ArrayList<>();
 //        Iterator<MapUserNode> iterator = mapUserNodes.iterator();

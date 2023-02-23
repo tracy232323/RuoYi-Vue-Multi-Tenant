@@ -139,5 +139,20 @@
         WHERE user_id = #{userId} AND company_id = #{companyId} AND is_show = #{isShow}
     </select>
 
+    <select id="selectListByManager" resultMap="BaseResultMap">
+        SELECT
+            id,
+            user_id,
+            company_id,
+            node_id,
+            path,
+            is_manage,
+            is_show,
+            update_time,
+            create_time,
+            deleted
+        FROM map_user_node
+        WHERE user_id = #{userId} AND company_id = #{companyId} AND is_manage = #{isManage}
+    </select>
 
 </mapper>

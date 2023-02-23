@@ -3,6 +3,8 @@ package com.ruoyi.project.monitor.domain;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.framework.aspectj.lang.annotation.Excel;
 import com.ruoyi.framework.aspectj.lang.annotation.Excel.ColumnType;
@@ -49,35 +51,35 @@ public class SysOperLog extends BaseEntity
     private String operName;
 
     /** 部门名称 */
-    @Excel(name = "部门名称")
+//    @Excel(name = "部门名称")
     private String deptName;
 
     /** 请求url */
-    @Excel(name = "请求地址")
+//    @Excel(name = "请求地址")
     private String operUrl;
 
     /** 操作地址 */
-    @Excel(name = "操作地址")
+//    @Excel(name = "操作地址")
     private String operIp;
 
     /** 操作地点 */
-    @Excel(name = "操作地点")
+//    @Excel(name = "操作地点")
     private String operLocation;
 
     /** 请求参数 */
-    @Excel(name = "请求参数")
+//    @Excel(name = "请求参数")
     private String operParam;
 
     /** 返回参数 */
-    @Excel(name = "返回参数")
+//    @Excel(name = "返回参数")
     private String jsonResult;
 
     /** 操作状态（0正常 1异常） */
-    @Excel(name = "状态", readConverterExp = "0=正常,1=异常")
+//    @Excel(name = "状态", readConverterExp = "0=正常,1=异常")
     private Integer status;
 
     /** 错误消息 */
-    @Excel(name = "错误消息")
+//    @Excel(name = "错误消息")
     private String errorMsg;
 
     /** 操作时间 */
@@ -92,7 +94,7 @@ public class SysOperLog extends BaseEntity
     @Excel(name = "操作节点")
     private Integer nodeId;
 
-    private ArrayList<Integer> nodeIds;
+    private List<Integer> nodeIds;
 
     public Integer getNodeId() {
         return nodeId;
@@ -102,7 +104,7 @@ public class SysOperLog extends BaseEntity
         this.nodeId = nodeId;
     }
 
-    public ArrayList getNodeIds() {
+    public List getNodeIds() {
         return nodeIds;
     }
 

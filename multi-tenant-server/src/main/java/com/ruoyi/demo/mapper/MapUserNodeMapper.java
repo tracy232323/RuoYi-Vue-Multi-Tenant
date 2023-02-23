@@ -31,6 +31,8 @@ public interface MapUserNodeMapper {
     MapUserNode selectOneById(Integer id);
 
     List<MapUserNode> selectListByShow(MapUserNode mapUserNode);
+
+    List<MapUserNode> selectListByManager(String providerId, Integer userId);
 }
 
 
