@@ -272,6 +272,27 @@ public class DemoServiceImpl implements DemoService {
     }
 
     @Override
+    public List<JSONObject> getPositionAllUser(ReqRootTree reqRootTree) {
+        //只有岗位才显示人员
+        String jsonStr = apiOperationUtil.getOrgAllUsers(ApiOperationConstant.GET_POSITION_ALL_USER_URL, reqRootTree.getProviderId(), reqRootTree.getPositionId());
+        List<JSONObject> users = JSONUtil.toList(jsonStr, JSONObject.class);
+        NodeInfo nodeInfo = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), reqRootTree.getPositionId());
+        Integer fatherId = nodeInfo.getFatherId();
+        NodeInfo node = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), fatherId);
+
+        String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, reqRootTree.getProviderId(), reqRootTree.getPositionId());
+        String path = commonUtil.buildUserPathFromTree(orgPath);
+        for (JSONObject user : users) {
+            MapUserNode mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), user.getInt("id"), node.getId());
+            if (!ApiOperationConstant.AUTHORITY_SHOW_VALUE.equals(mapUserNode.getIsShow())) {
+                users.remove(user);
+            }
+            user.putOpt("path", path);
+        }
+        return users;
+    }
+
+    @Override
     public List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree) {
         List<JSONObject> list = new ArrayList<>();
         getOrgUsers(reqRootTree.getProviderId(), reqRootTree.getType(), reqRootTree.getOrgId(), reqRootTree.getPositionId(), list);
