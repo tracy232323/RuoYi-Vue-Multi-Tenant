@@ -11,6 +11,7 @@ import com.ruoyi.project.system.domain.SysUser;
 import com.ruoyi.project.system.service.ISysUserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -48,6 +49,9 @@ public class SysLoginService {
 
     @Autowired
     private RedisCache redisCache;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     /**
      * 登录验证
@@ -116,7 +120,8 @@ public class SysLoginService {
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(sysUser.getUserName(), Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
-        redisCache.setCacheObject(sysUser.getUserName(),name);
+//        redisCache.setCacheObject(sysUser.getUserName(),name);
+        redisTemplate.opsForValue().set(sysUser.getUserName(),name);
         // 生成token
         return tokenService.createToken(loginUser);
     }
