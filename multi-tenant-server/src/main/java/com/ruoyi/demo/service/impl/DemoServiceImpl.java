@@ -104,6 +104,7 @@ public class DemoServiceImpl implements DemoService {
                     .userId(userAuth.getUserId())
                     .companyId(userAuth.getProviderId())
                     .nodeId(nodeInfo.getId())
+                    .posId(userAuth.getPositionId())
                     .path(path)
                     .isManage(ApiOperationConstant.AUTHORITY_NOT_MANAGER_VALUE)
                     .isShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE)
@@ -136,22 +137,7 @@ public class DemoServiceImpl implements DemoService {
         }
         // 检索出用户拥有权限的节点
         List<NodeInfo> nodeInfos = nodeInfoService.selectByMap(providerId, userId);
-        // 可能存在父子节点均有不同权限的情况，比如zld在A节点有浏览权限，B节点有管理权限，所以要将B去掉，只构建A即可
-        HashMap<IdObject, NodeInfo> infoHashMap = new HashMap<>();
-        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
-        while (nodeInfoIterator.hasNext()) {
-            NodeInfo next = nodeInfoIterator.next();
-            infoHashMap.put(new IdObject(next.getNodeId(), next.getProviderId()), next);
-        }
-        Set<Map.Entry<IdObject, NodeInfo>> entries = infoHashMap.entrySet();
-        Iterator<Map.Entry<IdObject, NodeInfo>> entryIterator = entries.iterator();
-        while (entryIterator.hasNext()) {
-            Map.Entry<IdObject, NodeInfo> next = entryIterator.next();
-            boolean b = buildTreeUtil.saveGrandfatherNode(infoHashMap, next.getValue());
-            if (!b) {
-                nodeInfos.remove(next);
-            }
-        }
+        buildTreeUtil.removeUnimportantNode(nodeInfos);
         // 去除好之后进行树的构建
         TreeNode root = new TreeNode();
         root.setNodeInfo(commonUtil.getRootNode());

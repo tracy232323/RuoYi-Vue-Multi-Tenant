@@ -22,8 +22,6 @@ public interface MapUserNodeMapper {
 
     public MapUserNode selectOne(@Param("companyId") String companyId, @Param("userId") Integer userId, @Param("nodeId") Integer nodeId);
 
-
-
     public void update2Auth(@Param("id")Integer id, @Param("isManage")Integer isManage, @Param("isShow")Integer isShow);
 
     List<MapUserNode> selectListByNodeId(Integer nodeId);
@@ -32,7 +30,13 @@ public interface MapUserNodeMapper {
 
     List<MapUserNode> selectListByShow(MapUserNode mapUserNode);
 
-    List<MapUserNode> selectListByManager(String providerId, Integer userId);
+    List<MapUserNode> selectListByManager(String providerId, Integer userId,Integer isManage);
+
+    List<MapUserNode> selectAllUser();
+
+    List<MapUserNode> selectPositionListByUser(@Param("companyId") String companyId, @Param("userId")Integer userId);
+
+    void updatePathByPosition(@Param("companyId")String companyId, @Param("userId")Integer userId, @Param("positionId")Integer positionId, @Param("path")String path);
 }
 
 

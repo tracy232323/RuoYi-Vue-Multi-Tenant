@@ -2,12 +2,19 @@ package com.ruoyi.demo.util;
 
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
-import com.ruoyi.demo.domain.NodeInfo;
-import com.ruoyi.demo.domain.TreeNode;
+import com.ruoyi.demo.constant.ApiOperationConstant;
+import com.ruoyi.demo.constant.NodeFieldConstant;
+import com.ruoyi.demo.domain.*;
+import com.ruoyi.demo.mapper.MapUserNodeMapper;
+import com.ruoyi.demo.mapper.NodeOperLogMapper;
+import com.ruoyi.demo.mapper.PositionOperLogMapper;
+import com.ruoyi.demo.service.MapUserNodeService;
+import com.ruoyi.demo.service.NodeInfoService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * @ClassName: CommonUtil
@@ -18,6 +25,15 @@ import java.util.List;
  **/
 @Component
 public class CommonUtil {
+
+    @Autowired
+    private NodeOperLogMapper nodeOperLogMapper;
+
+    @Autowired
+    private PositionOperLogMapper positionOperLogMapper;
+
+    @Autowired
+    private NodeInfoService nodeInfoService;
 
     private static NodeInfo rootNode;
 
@@ -74,5 +90,68 @@ public class CommonUtil {
         rootNode = nodeInfo;
         return nodeInfo;
     }
+
+    /**
+     * 解析组织树，获取每个节点的信息
+     * @param nodes      节点集合
+     * @param data       数据
+     * @param providerId
+     * @param id
+     */
+    public void getOrganizationChildren(List<NodeInfo> nodes, JSONObject data, String providerId, Integer id) {
+        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
+        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
+            NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
+            nodes.add(nodeInfo);
+            return;
+        }
+        // 提取字段组成NodeInfo
+        NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
+        // 写入nodes中
+        nodes.add(nodeInfo);
+        // 判断是否存在children，没有或者为数量为空，则返回上一层，有则进行数组JSON解析，并迭代
+        String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
+        if (!"null".equals(childrenJson)) {
+            List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
+            for (JSONObject child : childrens) {
+                getOrganizationChildren(nodes, child, providerId, nodeInfo.getNodeId());
+            }
+        }
+    }
+
+    public NodeInfo buildNodeInfoByJSON(JSONObject data, String providerId, Integer fatherId) {
+        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
+        Integer id = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
+        String name = data.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
+        Integer order = data.get(NodeFieldConstant.ORDER_FIELD_NAME, Integer.class);
+        NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
+        return nodeInfo;
+    }
+
+
+    public void getNodeAllLog(List<NodeOperLog> nodeOperLogs, List<PositionOperLog> positionOperLogs, List<NodeInfo> deleteModeInfos, NodeInfo node){
+        // 插入当前节点的删除日志
+        deleteModeInfos.add(node);
+        // 获取当前节点的两个日志，并存储
+        List<NodeOperLog> currentNodeOperLogs = nodeOperLogMapper.selectListByNodeId(node.getNodeId());
+        List<PositionOperLog> currentPositionOperLogs = positionOperLogMapper.selectListByNodeId(node.getNodeId());
+        if( !currentNodeOperLogs.isEmpty() ){
+            nodeOperLogs.addAll(currentNodeOperLogs);
+        }
+        if( !currentPositionOperLogs.isEmpty()){
+            positionOperLogs.addAll(currentPositionOperLogs);
+        }
+        List<NodeInfo> childrenNodeInfos = nodeInfoService.selectListByFatherId(node);
+        Iterator<NodeInfo> iterator = childrenNodeInfos.iterator();
+        while(  iterator.hasNext() ){
+            NodeInfo next = iterator.next();
+            getNodeAllLog(nodeOperLogs, positionOperLogs, deleteModeInfos, next);
+        }
+    }
+
+
+
+
+
 
 }

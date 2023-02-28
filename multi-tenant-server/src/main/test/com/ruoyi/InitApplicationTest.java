@@ -62,91 +62,87 @@ public class InitApplicationTest {
     }
 
 
-    @Test
-    public void init() {
-        apiOperationUtil.getAccessToken(
-                ApiOperationConstant.GET_ACCESS_TOKEN_URL,
-                ApiOperationConstant.CLIENT_CREDENTIALS,
-                ApiOperationConstant.CLIENT_ID,
-                ApiOperationConstant.CLIENT_SECRET);
-        List<NodeInfo> nodeList = nodeInfoService.selectAll();
-        String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
-        List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
-        List<NodeInfo> tempList = new ArrayList<>();
-        tempList.add(commonUtil.getRootNode());
-        for (JSONObject organizationInfo : organizationInfos) {
-            String providerId = organizationInfo.get("id").toString();
-            JSONObject root = new JSONObject(organizationInfo.get("root"));
-            Integer id = Integer.parseInt(root.get("id").toString());
-            String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, providerId, id);
-            // 进入递归收集
-            getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, 0);
-        }
-        // 这里是存在逻辑。进行数据对比，获取不同的数据
-        // 差集 (list1 - list2)
-        List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
-        log.info("---得到差集 reduce1 (list1 - list2)---：{}", reduce1);
-        // 判断有没有新增节点，插入
-        if (!reduce1.isEmpty()) {
-            // 开始解析组织树
-            if (reduce1.size() > 1000) {
-                List<List<NodeInfo>> partitions = Lists.partition(reduce1, 1000);
-                for (List<NodeInfo> partition : partitions) {
-                    nodeInfoService.insertBatch(partition);
-                }
-            } else {
-                nodeInfoService.insertBatch(reduce1);
-            }
-        }
-        // 查询有多少个root账号,就给他们都授权了
-        List<RootUser> rootUsers = rootUserService.selectAll();
-        for (RootUser rootUser : rootUsers) {
-            // 获取主要岗位
-            String mainPositionByUser = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, rootUser.getProviderId(), rootUser.getUserId());
-            Integer id = new JSONObject(mainPositionByUser).get("id", Integer.class);
-            // 根据主要岗位获取路径
-            String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, rootUser.getProviderId(), id);
-            String path = commonUtil.buildUserPathFromTree(orgPath);
-            // 获取当前用户名称
-            String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, rootUser.getProviderId(), rootUser.getUserId());
-            String name = new JSONObject(userInfo).get("name", String.class);
-            // 拼接获取path
-            path = path + " " + name;
-            grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, commonUtil.getRootNode(), path);
-        }
-        // 看看需要删除多少节点
-        // 差集 (list2 - list1)
-        List<NodeInfo> reduce2 = nodeList.stream().filter(item -> !tempList.contains(item)).collect(Collectors.toList());
-        log.info("---得到差集 reduce2 (list2 - list1)---:{}", reduce2);
-        // 判断有没有删减节点，有则进行授权删除以及节点删除，无则跳过
-        List<Integer> ids = reduce2.stream().map(NodeInfo::getId).collect(Collectors.toList());
-        if (!reduce2.isEmpty()) {
-            // 删除授权
-            mapUserNodeService.deleteByNodeIds(ids);
-            // 删除节点
-            nodeInfoService.deleteByIds(ids);
-        }
-        // 第四步，根据Root账号去遍历出他们被授权的节点结合
-        TreeNode treeNode = new TreeNode();
-        treeNode.setNodeInfo(commonUtil.getRootNode());
-        for (RootUser rootUser : rootUsers) {
-            // 第五步：根据此集合构建树结构
-            String treeJSON = buildShowTree(commonUtil.getRootNode());
-            log.info("treeJSON:{}", treeJSON);
-            // 第六步：存放内存即可
-            String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
-            BuildTreeUtil.rootTree.put(key, treeJSON);
-//            stringRedisTemplate.opsForValue().set(key, treeJSON);
-        }
-    }
+//    @Test
+//    public void init() {
+//        apiOperationUtil.getAccessToken(
+//                ApiOperationConstant.GET_ACCESS_TOKEN_URL,
+//                ApiOperationConstant.CLIENT_CREDENTIALS,
+//                ApiOperationConstant.CLIENT_ID,
+//                ApiOperationConstant.CLIENT_SECRET);
+//        List<NodeInfo> nodeList = nodeInfoService.selectAll();
+//        String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
+//        List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
+//        List<NodeInfo> tempList = new ArrayList<>();
+//        tempList.add(commonUtil.getRootNode());
+//        for (JSONObject organizationInfo : organizationInfos) {
+//            String providerId = organizationInfo.get("id").toString();
+//            JSONObject root = new JSONObject(organizationInfo.get("root"));
+//            Integer id = Integer.parseInt(root.get("id").toString());
+//            String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, providerId, id);
+//            // 进入递归收集
+//            getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, 0);
+//        }
+//        // 这里是存在逻辑。进行数据对比，获取不同的数据
+//        // 差集 (list1 - list2)
+//        List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
+//        log.info("---得到差集 reduce1 (list1 - list2)---：{}", reduce1);
+//        // 判断有没有新增节点，插入
+//        if (!reduce1.isEmpty()) {
+//            // 开始解析组织树
+//            if (reduce1.size() > 1000) {
+//                List<List<NodeInfo>> partitions = Lists.partition(reduce1, 1000);
+//                for (List<NodeInfo> partition : partitions) {
+//                    nodeInfoService.insertBatch(partition);
+//                }
+//            } else {
+//                nodeInfoService.insertBatch(reduce1);
+//            }
+//        }
+//        // 查询有多少个root账号,就给他们都授权了
+//        List<RootUser> rootUsers = rootUserService.selectAll();
+//        for (RootUser rootUser : rootUsers) {
+//            // 获取主要岗位
+//            String mainPositionByUser = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, rootUser.getProviderId(), rootUser.getUserId());
+//            Integer id = new JSONObject(mainPositionByUser).get("id", Integer.class);
+//            // 根据主要岗位获取路径
+//            String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, rootUser.getProviderId(), id);
+//            String path = commonUtil.buildUserPathFromTree(orgPath);
+//            // 获取当前用户名称
+//            String userInfo = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, rootUser.getProviderId(), rootUser.getUserId());
+//            String name = new JSONObject(userInfo).get("name", String.class);
+//            // 拼接获取path
+//            path = path + " " + name;
+//            grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, commonUtil.getRootNode(), path);
+//        }
+//        // 看看需要删除多少节点
+//        // 差集 (list2 - list1)
+//        List<NodeInfo> reduce2 = nodeList.stream().filter(item -> !tempList.contains(item)).collect(Collectors.toList());
+//        log.info("---得到差集 reduce2 (list2 - list1)---:{}", reduce2);
+//        // 判断有没有删减节点，有则进行授权删除以及节点删除，无则跳过
+//        List<Integer> ids = reduce2.stream().map(NodeInfo::getId).collect(Collectors.toList());
+//        if (!reduce2.isEmpty()) {
+//            // 删除授权
+//            mapUserNodeService.deleteByNodeIds(ids);
+//            // 删除节点
+//            nodeInfoService.deleteByIds(ids);
+//        }
+//        // 第四步，根据Root账号去遍历出他们被授权的节点结合
+//        TreeNode treeNode = new TreeNode();
+//        treeNode.setNodeInfo(commonUtil.getRootNode());
+//        for (RootUser rootUser : rootUsers) {
+//            // 第五步：根据此集合构建树结构
+//            String treeJSON = buildShowTree(commonUtil.getRootNode());
+//            log.info("treeJSON:{}", treeJSON);
+//            // 第六步：存放内存即可
+//            String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
+//            BuildTreeUtil.rootTree.put(key, treeJSON);
+////            stringRedisTemplate.opsForValue().set(key, treeJSON);
+//        }
+//    }
 
 
 
-    @Test
-    public void test2(){
-        String treeJSON = buildShowTree(commonUtil.getRootNode());
-        log.info("treeJSON:{}", treeJSON);
-    }
+
 
     public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, NodeInfo nodeInfo, String path) {
         // 使用iterator在大数据量时，效率高
@@ -260,23 +256,23 @@ public class InitApplicationTest {
 //    }
 
 
-    public String buildShowTree(NodeInfo rootNode) {
-        List<TreeNode> rootList = new LinkedList<>();
-        List<NodeInfo> nodeInfos = nodeInfoService.selectListByFatherId(rootNode);
-        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
-        TreeNode rootTree = new TreeNode();
-        rootTree.setNodeInfo(rootNode);
-        while (nodeInfoIterator.hasNext()) {
-            NodeInfo node = nodeInfoIterator.next();
-            TreeNode treeNode = buildShowTree(node,rootTree);
-            Integer insertIndex = commonUtil.getInsertIndex(rootList, treeNode.getNodeInfo().getOrder());
-            rootList.add(insertIndex, treeNode);
-        }
-        TreeNode rootTreeNode = new TreeNode();
-        rootTreeNode.setNodeInfo(rootNode);
-        rootTreeNode.setChildren(rootList);
-        return JSONUtil.toJsonStr(rootTreeNode);
-    }
+//    public String buildShowTree(NodeInfo rootNode) {
+//        List<TreeNode> rootList = new LinkedList<>();
+//        List<NodeInfo> nodeInfos = nodeInfoService.selectListByFatherId(rootNode);
+//        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
+//        TreeNode rootTree = new TreeNode();
+//        rootTree.setNodeInfo(rootNode);
+//        while (nodeInfoIterator.hasNext()) {
+//            NodeInfo node = nodeInfoIterator.next();
+//            TreeNode treeNode = buildShowTree(node,rootTree);
+//            Integer insertIndex = commonUtil.getInsertIndex(rootList, treeNode.getNodeInfo().getOrder());
+//            rootList.add(insertIndex, treeNode);
+//        }
+//        TreeNode rootTreeNode = new TreeNode();
+//        rootTreeNode.setNodeInfo(rootNode);
+//        rootTreeNode.setChildren(rootList);
+//        return JSONUtil.toJsonStr(rootTreeNode);
+//    }
 
 
 //    public Map<IdObject,List<NodeInfo>> getNextNodeInfos(){

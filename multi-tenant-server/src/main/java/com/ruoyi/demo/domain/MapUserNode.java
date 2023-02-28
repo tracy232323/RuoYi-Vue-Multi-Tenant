@@ -40,6 +40,16 @@ public class MapUserNode implements Serializable {
     private Integer nodeId;
 
     /**
+     * 被授权对象的岗位所在二级单位id
+     */
+    private String posProviderId;
+
+    /**
+     * 被授权对象的岗位id
+     */
+    private Integer posId;
+
+    /**
      * 用户所属组织路径
      */
     private String path;

@@ -9,6 +9,7 @@
         <result property="userId" column="user_id" jdbcType="INTEGER"/>
         <result property="companyId" column="company_id" jdbcType="VARCHAR"/>
         <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
+        <result property="posId" column="pos_id" jdbcType="INTEGER"/>
         <result property="path" column="path" jdbcType="VARCHAR"/>
         <result property="isManage" column="is_manage" jdbcType="INTEGER"/>
         <result property="isShow" column="is_show" jdbcType="INTEGER"/>
@@ -30,6 +31,7 @@
         user_id,
         company_id,
         node_id,
+        pos_id,
         path,
         is_manage,
         is_show
@@ -40,6 +42,7 @@
             #{node.userId},
             #{node.companyId},
             #{node.nodeId},
+            #{node.posId},
             #{node.path},
             #{node.isManage},
             #{node.isShow}
@@ -54,6 +57,9 @@
             user_id,
             company_id,
             node_id,
+            pos_provider_id,
+            pos_id,
+            path,
             is_manage,
             is_show,
             update_time,
@@ -77,6 +83,9 @@
             user_id,
             company_id,
             node_id,
+            pos_provider_id,
+            pos_id,
+            path,
             is_manage,
             is_show,
             update_time,
@@ -92,6 +101,8 @@
             user_id,
             company_id,
             node_id,
+            pos_provider_id,
+            pos_id,
             path,
             is_manage,
             is_show,
@@ -113,6 +124,8 @@
             user_id,
             company_id,
             node_id,
+            pos_provider_id,
+            pos_id,
             path,
             is_manage,
             is_show,
@@ -129,6 +142,8 @@
             user_id,
             company_id,
             node_id,
+            pos_provider_id,
+            pos_id,
             path,
             is_manage,
             is_show,
@@ -145,6 +160,8 @@
             user_id,
             company_id,
             node_id,
+            pos_provider_id,
+            pos_id,
             path,
             is_manage,
             is_show,
@@ -152,7 +169,24 @@
             create_time,
             deleted
         FROM map_user_node
-        WHERE user_id = #{userId} AND company_id = #{companyId} AND is_manage = #{isManage}
+        WHERE user_id = #{userId} AND company_id = #{providerId} AND is_manage = #{isManage}
     </select>
+
+    <select id="selectAllUser" resultMap="BaseResultMap">
+        select company_id,user_id from map_user_node
+        GROUP BY company_id,user_id
+    </select>
+
+    <select id="selectPositionListByUser" resultMap="BaseResultMap">
+        select pos_id,path,node_id from map_user_node
+        WHERE company_id = #{companyId} AND user_id = #{userId}
+        GROUP BY pos_id
+    </select>
+
+    <update id="updatePathByPosition" >
+        update map_user_node
+        set path = #{path}
+        where company_id = #{companyId} AND user_id = #{userId} AND pos_id = #{positionId}
+    </update>
 
 </mapper>

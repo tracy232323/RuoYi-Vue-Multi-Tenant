@@ -56,12 +56,18 @@ public class RunYiApplicationTest {
     private SysOperLogServiceImpl sysOperLogService;
 
     @Test
-    public void test1() {
-
-        redisCache.setCacheObject("123","123");
-
-
-
+    public void test6() {
+        List<Integer> a = new ArrayList<Integer>();
+        List<Integer> b = new ArrayList<Integer>();
+        a.add(1);
+        a.add(2);
+        a.add(4);
+        a.add(5);
+        b.add(1);
+        List<Integer> collect1 = a.stream().filter(item -> !b.contains(item)).collect(Collectors.toList());
+        log.info("Collect1:{}",collect1);
+        List<Integer> collect2 = b.stream().filter(item -> !a.contains(item)).collect(Collectors.toList());
+        log.info("Collect2:{}",collect2);
     }
 //    insert into sys_oper_log(title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time,oper_info)
 //    values (#{title}, #{businessType}, #{method}, #{requestMethod}, #{operatorType}, #{operName}, #{deptName}, #{operUrl}, #{operIp}, #{operLocation}, #{operParam}, #{jsonResult}, #{status}, #{errorMsg}, sysdate(), #{operInfo})
@@ -263,7 +269,7 @@ public class RunYiApplicationTest {
         list1.add("4444");
 
         List<String> list2 = new ArrayList();
-//        list2.add("1111");
+        list2.add("1111");
 //        list2.add("2222");
 //        list2.add("3333");
 

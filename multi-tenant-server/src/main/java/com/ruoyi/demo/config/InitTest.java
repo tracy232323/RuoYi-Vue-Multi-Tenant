@@ -7,10 +7,9 @@ import com.google.common.collect.Lists;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.constant.NodeFieldConstant;
 import com.ruoyi.demo.constant.RedisConstant;
-import com.ruoyi.demo.domain.MapUserNode;
-import com.ruoyi.demo.domain.NodeInfo;
-import com.ruoyi.demo.domain.RootUser;
-import com.ruoyi.demo.domain.TreeNode;
+import com.ruoyi.demo.domain.*;
+import com.ruoyi.demo.mapper.NodeOperLogMapper;
+import com.ruoyi.demo.mapper.PositionOperLogMapper;
 import com.ruoyi.demo.service.MapUserNodeService;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.service.RootUserService;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 public class InitTest {
-
     @Autowired
     private ApiOperationUtil apiOperationUtil;
     @Autowired
@@ -46,6 +44,12 @@ public class InitTest {
     private RootUserService rootUserService;
     @Autowired
     private CommonUtil commonUtil;
+    @Autowired
+    private BuildTreeUtil buildTreeUtil;
+    @Autowired
+    private NodeOperLogMapper nodeOperLogMapper;
+    @Autowired
+    private PositionOperLogMapper positionOperLogMapper;
 
     @PostConstruct
     public void init() {
@@ -65,9 +69,61 @@ public class InitTest {
             Integer id = Integer.parseInt(root.get("id").toString());
             String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, providerId, id);
             // 进入递归收集
-            getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, 0);
+            commonUtil.getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, 0);
         }
         // 这里是存在逻辑。进行数据对比，获取不同的数据
+
+        // 看看需要删除多少节点
+        // 差集 (list2 - list1)
+        List<NodeInfo> reduce2 = nodeList.stream().filter(item -> !tempList.contains(item)).collect(Collectors.toList());
+        log.info("---得到更新时的差集 reduce2 (list2 - list1)---:{}", reduce2);
+        // 判断有没有删减节点，有则进行授权删除以及节点删除，无则跳过
+        List<Integer> ids = reduce2.stream().map(NodeInfo::getId).collect(Collectors.toList());
+        if (!reduce2.isEmpty()) {
+            // 先去掉当前差集中，属于相同树中的节点，只保留此删除树形结构的相对根节点即可。
+            buildTreeUtil.removeUnimportantNode(reduce2);
+            Iterator<NodeInfo> iterator = reduce2.iterator();
+            while( iterator.hasNext() ) {
+                NodeInfo next = iterator.next();
+                // 获取此节点的上一个节点，作为日志转移节点
+                NodeInfo fatherNode = nodeInfoService.selectNodeIdByFatherId(next);
+                // 迭代当前节点下的树叶以及树支节点，获取他们的历史变更日志以及历史节点删除日志，将其都修改到fatherNode节点下
+                ArrayList<NodeOperLog> nodeOperLogs = new ArrayList<>();
+                ArrayList<PositionOperLog> positionOperLogs = new ArrayList<>();
+                ArrayList<NodeInfo> deleteNodeInfos = new ArrayList<>();
+                commonUtil.getNodeAllLog(nodeOperLogs,positionOperLogs,deleteNodeInfos,next);
+                // 将节点日志修改到父亲节点下
+                Iterator<NodeOperLog> nodeOperLogIterator = nodeOperLogs.iterator();
+                while( nodeOperLogIterator.hasNext()){
+                    NodeOperLog nodeOperLog = nodeOperLogIterator.next();
+                    nodeOperLog.setNodeId(fatherNode.getId());
+                    // 更新
+                    nodeOperLogMapper.updateById(nodeOperLog);
+                }
+                // 将岗位日志修改到父亲节点下
+                Iterator<PositionOperLog> positionOperLogIterator = positionOperLogs.iterator();
+                while( positionOperLogIterator.hasNext()){
+                    PositionOperLog positionOperLog = positionOperLogIterator.next();
+                    positionOperLog.setNodeId(fatherNode.getId());
+                    // 更新
+                    positionOperLogMapper.updateById(positionOperLog);
+                }
+                // 记录这些节点的删除到父亲节点的历史删除日志中
+                Iterator<NodeInfo> deleteNodeOperIterator = deleteNodeInfos.iterator();
+                while( deleteNodeOperIterator.hasNext()){
+                    NodeInfo nodeInfo = deleteNodeOperIterator.next();
+                    NodeOperLog nodeOperLog = new NodeOperLog();
+                    nodeOperLog.setNodeId(fatherNode.getId());
+                    nodeOperLog.setContext("节点："+nodeInfo.getName()+"被删除");
+                    // 添加
+                    nodeOperLogMapper.add(nodeOperLog);
+                }
+            }
+            // 删除授权
+            mapUserNodeService.deleteByNodeIds(ids);
+            // 删除节点
+            nodeInfoService.deleteByIds(ids);
+        }
         // 差集 (list1 - list2)
         List<NodeInfo> reduce1 = tempList.stream().filter(item -> !nodeList.contains(item)).collect(Collectors.toList());
         log.info("---得到差集 reduce1 (list1 - list2)---：{}", reduce1);
@@ -97,20 +153,17 @@ public class InitTest {
             String name = new JSONObject(userInfo).get("name", String.class);
             // 拼接获取path
             path = path + " " + name;
-            grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, commonUtil.getRootNode(), path);
+            grantedPermissionsByNodeList(rootUser.getProviderId(), rootUser.getUserId(), ApiOperationConstant.AUTHORITY_MANAGER, commonUtil.getRootNode(), path,id);
         }
-        // 看看需要删除多少节点
-        // 差集 (list2 - list1)
-        List<NodeInfo> reduce2 = nodeList.stream().filter(item -> !tempList.contains(item)).collect(Collectors.toList());
-        log.info("---得到差集 reduce2 (list2 - list1)---:{}", reduce2);
-        // 判断有没有删减节点，有则进行授权删除以及节点删除，无则跳过
-        List<Integer> ids = reduce2.stream().map(NodeInfo::getId).collect(Collectors.toList());
-        if (!reduce2.isEmpty()) {
-            // 删除授权
-            mapUserNodeService.deleteByNodeIds(ids);
-            // 删除节点
-            nodeInfoService.deleteByIds(ids);
-        }
+//        log.info("---得到差集 reduce2 (list2 - list1)---:{}", reduce2);
+//        // 判断有没有删减节点，有则进行授权删除以及节点删除，无则跳过
+//        List<Integer> ids = reduce2.stream().map(NodeInfo::getId).collect(Collectors.toList());
+//        if (!reduce2.isEmpty()) {
+//            // 删除授权
+//            mapUserNodeService.deleteByNodeIds(ids);
+//            // 删除节点
+//            nodeInfoService.deleteByIds(ids);
+//        }
         // 第四步，根据Root账号去遍历出他们被授权的节点结合
         TreeNode treeNode = new TreeNode();
         treeNode.setNodeInfo(commonUtil.getRootNode());
@@ -125,7 +178,8 @@ public class InitTest {
         }
     }
 
-    public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, NodeInfo nodeInfo, String path) {
+
+    public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, NodeInfo nodeInfo, String path,Integer positionId) {
         // 使用iterator在大数据量时，效率高
         MapUserNode node = mapUserNodeService.selectOne(providerId, userId, nodeInfo.getId());
         if (!StringUtils.isEmpty(node)) {
@@ -134,6 +188,8 @@ public class InitTest {
         MapUserNode mapUserNode = new MapUserNode();
         mapUserNode.setCompanyId(providerId);
         mapUserNode.setUserId(userId);
+        mapUserNode.setPosProviderId(providerId);
+        mapUserNode.setPosId(positionId);
         mapUserNode.setNodeId(nodeInfo.getId());
         mapUserNode.setPath(path);
         // 判断授权
@@ -148,43 +204,6 @@ public class InitTest {
             mapUserNode.setIsShow(ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE);
         }
         mapUserNodeService.insertBatch(Arrays.asList(mapUserNode));
-    }
-
-    /**
-     * 解析组织树，获取每个节点的信息
-     * @param nodes      节点集合
-     * @param data       数据
-     * @param providerId
-     * @param id
-     */
-    public void getOrganizationChildren(List<NodeInfo> nodes, JSONObject data, String providerId, Integer id) {
-        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
-        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
-            NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
-            nodes.add(nodeInfo);
-            return;
-        }
-        // 提取字段组成NodeInfo
-        NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
-        // 写入nodes中
-        nodes.add(nodeInfo);
-        // 判断是否存在children，没有或者为数量为空，则返回上一层，有则进行数组JSON解析，并迭代
-        String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
-        if (!"null".equals(childrenJson)) {
-            List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
-            for (JSONObject child : childrens) {
-                getOrganizationChildren(nodes, child, providerId, nodeInfo.getNodeId());
-            }
-        }
-    }
-
-    public NodeInfo buildNodeInfoByJSON(JSONObject data, String providerId, Integer fatherId) {
-        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
-        Integer id = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
-        String name = data.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
-        Integer order = data.get(NodeFieldConstant.ORDER_FIELD_NAME, Integer.class);
-        NodeInfo nodeInfo = NodeInfo.builder().type(type).nodeId(id).name(name).order(order).fatherId(fatherId).providerId(providerId).build();
-        return nodeInfo;
     }
 
     public String buildShowTree(NodeInfo rootNode) {
@@ -212,7 +231,7 @@ public class InitTest {
             return ;
         }
         // 提取字段组成NodeInfo
-        NodeInfo nodeInfo = buildNodeInfoByJSON(data, providerId, id);
+        NodeInfo nodeInfo = commonUtil.buildNodeInfoByJSON(data, providerId, id);
         TreeNode currentTreeNode = new TreeNode();
         currentTreeNode.setNodeInfo(nodeInfo);
         Integer insertIndex = commonUtil.getInsertIndex(treeNode.getChildren(), nodeInfo.getOrder());

@@ -60,6 +60,11 @@ public class NodeInfoServiceImpl implements NodeInfoService {
     public NodeInfo selectByNodeId(NodeInfo nodeInfo) {
         return nodeInfoMapper.selectOneByNodeIdAndProviderId(nodeInfo);
     }
+
+    @Override
+    public NodeInfo selectNodeIdByFatherId(NodeInfo next) {
+        return nodeInfoMapper.selectOneByNodeIdAndProviderId(next);
+    }
 }
 
 

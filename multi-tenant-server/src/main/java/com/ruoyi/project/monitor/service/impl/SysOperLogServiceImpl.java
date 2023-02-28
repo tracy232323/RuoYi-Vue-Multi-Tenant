@@ -53,18 +53,16 @@ public class SysOperLogServiceImpl implements ISysOperLogService
     @Override
     public List<SysOperLog> selectOperLogList(SysOperLog operLog,String providerId, Integer userId)
     {
-//        MapUserNode mapUserNode = new MapUserNode();
-//        mapUserNode.setCompanyId(providerId);
-//        mapUserNode.setUserId(userId);
-//        mapUserNode.setIsManage(ApiOperationConstant.AUTHORITY_MANAGER_VALUE);
-//        mapUserNode.setNodeId(0);
-        MapUserNode mapUserNode = mapUserNodeMapper.selectOne(providerId, userId, 0);
+        MapUserNode mapUserNode = mapUserNodeMapper.selectOne(providerId, userId, 1);
         if( !StringUtils.isEmpty(mapUserNode) ){
             return operLogMapper.selectOperLogList(operLog);
         }
         // 进入这里，说明不是root用户，需要加入nodeIds的配置
         // 根据当前登陆的用户信息，查询其拥有哪些授权节点
-        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByManager(providerId, userId);
+        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByManager(providerId, userId,1);
+        if( mapUserNodes.isEmpty() ){
+            return new ArrayList<SysOperLog>();
+        }
         Iterator<MapUserNode> iterator = mapUserNodes.iterator();
         ArrayList<Integer> nodeIds = new ArrayList<>();
         while( iterator.hasNext() ){
@@ -72,14 +70,6 @@ public class SysOperLogServiceImpl implements ISysOperLogService
             nodeIds.add(next.getNodeId());
         }
         operLog.setNodeIds(nodeIds);
-//        List<MapUserNode> mapUserNodes = mapUserNodeMapper.selectListByManager(mapUserNode);
-//        ArrayList<Integer> nodeIds = new ArrayList<>();
-//        Iterator<MapUserNode> iterator = mapUserNodes.iterator();
-//        while (iterator.hasNext()) {
-//            MapUserNode next = iterator.next();
-//            nodeIds.add(next.getNodeId());
-//        }
-//        operLog.setNodeIds(nodeIds);
         return operLogMapper.selectOperLogList(operLog);
     }
 

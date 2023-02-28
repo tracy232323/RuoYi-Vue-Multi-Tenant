@@ -25,4 +25,6 @@ public interface NodeInfoService {
     public List<NodeInfo> selectListByFatherId(NodeInfo nodeInfo);
 
     NodeInfo selectByNodeId(NodeInfo nodeInfo);
+
+    NodeInfo selectNodeIdByFatherId(NodeInfo next);
 }

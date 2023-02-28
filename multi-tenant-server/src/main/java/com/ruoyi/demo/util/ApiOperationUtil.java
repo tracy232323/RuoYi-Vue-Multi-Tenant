@@ -184,7 +184,7 @@ public class ApiOperationUtil {
         }
         // 替换url中的指定参数
         url = url.replace(ApiOperationConstant.PROVIDER_ID, providerId);
-        url = url.replace(ApiOperationConstant.USER_ID, userId.toString());
+        url = url.replace("{userId}", userId.toString());
         HttpResponse execute = HttpRequest.get(url)
                 .header(ApiOperationConstant.AUTHORIZATION, "Bearer " + accessToken)
                 .execute();

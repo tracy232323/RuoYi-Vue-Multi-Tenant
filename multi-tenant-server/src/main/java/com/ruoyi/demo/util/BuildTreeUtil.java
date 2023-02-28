@@ -11,10 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @ClassName: BuildTreeUtil
@@ -101,5 +98,28 @@ public class BuildTreeUtil {
             return false;
         }
         return saveGrandfatherNode(allNodeInfoMap, node);
+    }
+
+    /**
+     * 移除一棵树中存在的多个节点，只保留相对根节点
+     * @param nodeInfos
+     */
+    public void removeUnimportantNode(List<NodeInfo> nodeInfos){
+        // 可能存在父子节点均有不同权限的情况，比如zld在A节点有浏览权限，B节点有管理权限，所以要将B去掉，只构建A即可
+        HashMap<IdObject, NodeInfo> infoHashMap = new HashMap<>();
+        Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
+        while (nodeInfoIterator.hasNext()) {
+            NodeInfo next = nodeInfoIterator.next();
+            infoHashMap.put(new IdObject(next.getNodeId(), next.getProviderId()), next);
+        }
+        Set<Map.Entry<IdObject, NodeInfo>> entries = infoHashMap.entrySet();
+        Iterator<Map.Entry<IdObject, NodeInfo>> entryIterator = entries.iterator();
+        while (entryIterator.hasNext()) {
+            Map.Entry<IdObject, NodeInfo> next = entryIterator.next();
+            boolean b = saveGrandfatherNode(infoHashMap, next.getValue());
+            if (!b) {
+                nodeInfos.remove(next);
+            }
+        }
     }
 }

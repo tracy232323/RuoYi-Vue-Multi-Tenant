@@ -5,15 +5,22 @@ import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.common.utils.ServletUtils;
+import com.ruoyi.demo.config.ScheduledUpdate;
 import com.ruoyi.demo.domain.MapUserNode;
 import cn.hutool.json.JSONUtil;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
+import com.ruoyi.demo.domain.NodeOperLog;
+import com.ruoyi.demo.domain.PositionOperLog;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
 import com.ruoyi.demo.domain.vo.MapUserNodeVo;
+import com.ruoyi.demo.domain.vo.NodeOperVo;
+import com.ruoyi.demo.domain.vo.PositionOperLogVo;
 import com.ruoyi.demo.service.DemoService;
+import com.ruoyi.demo.service.NodeOperLogService;
+import com.ruoyi.demo.service.PositionOperLogService;
 import com.ruoyi.framework.redis.RedisCache;
 import com.ruoyi.framework.redis.RedisCache;
 import com.ruoyi.framework.security.LoginUser;
@@ -21,6 +28,7 @@ import com.ruoyi.framework.security.service.TokenService;
 import com.ruoyi.framework.web.domain.AjaxResult;
 import com.ruoyi.project.system.domain.SysUser;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -51,6 +59,10 @@ public class DemoController {
     private StringRedisTemplate redisTemplate;
     @Autowired
     private TokenService tokenService;
+    @Autowired
+    private NodeOperLogService nodeOperLogService;
+    @Autowired
+    private PositionOperLogService positionOperLogService;
 
     @ApiOperation("获取HR树，每个节点调一次")
     @PostMapping("/getOringTree")
@@ -146,25 +158,22 @@ public class DemoController {
         }
         //在内存操作，写到浏览器
         ExcelWriter writer = ExcelUtil.getWriter(true);
-
         //自定义标题别名
         writer.addHeaderAlias("order", "序号");
         writer.addHeaderAlias("name", "姓名");
         writer.addHeaderAlias("dept", "单位");
         writer.addHeaderAlias("org", "部门");
         writer.addHeaderAlias("position", "岗位");
-
         //默认配置
         writer.write(list, true);
+        writer.autoSizeColumnAll();
         //设置content—type
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset:utf-8");
-
         //设置标题
         String fileName = URLEncoder.encode("用户信息", "UTF-8");
         //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
         response.setHeader("Content-Disposition", System.currentTimeMillis() + ".xlsx");
         ServletOutputStream outputStream = response.getOutputStream();
-
         //将Writer刷新到OutPut
         writer.flush(outputStream, true);
         outputStream.close();
@@ -219,5 +228,130 @@ public class DemoController {
             writer.close();
         }
     }
+
+    @ApiOperation("根据nodeId获取当前节点记录的历史节点变动日志内容")
+    @GetMapping("/get/node/log/{nodeId}")
+    public AjaxResult getNodeOperLog(@ApiParam("节点参数") @PathVariable Integer nodeId){
+        List<NodeOperLog> nodeOperLogs = nodeOperLogService.selectListByNodeId(nodeId);
+        return AjaxResult.success(nodeOperLogs);
+    }
+
+    @ApiOperation("根据nodeId获取当前节点记录的历史节点变动日志内容(excel)")
+    @GetMapping("/get/node/log/{nodeId}/excel")
+    public void exportNodeOperLog(@PathVariable Integer nodeId, HttpServletResponse response){
+        List<NodeOperLog> nodeOperLogs = nodeOperLogService.selectListByNodeId(nodeId);
+        ArrayList<NodeOperVo> nodeOperVos = new ArrayList<>();
+        Iterator<NodeOperLog> iterator = nodeOperLogs.iterator();
+        int index = 1;
+        while( iterator.hasNext() ){
+            NodeOperLog next = iterator.next();
+            NodeOperVo nodeOperVo = new NodeOperVo();
+            BeanUtils.copyProperties(next,nodeOperVo);
+            nodeOperVo.setIndex(index++);
+            nodeOperVos.add(nodeOperVo);
+        }
+        //在内存操作，写到浏览器
+        ExcelWriter writer= ExcelUtil.getWriter(true);
+        //自定义标题别名
+        writer.addHeaderAlias("index","序号");
+        writer.addHeaderAlias("context","操作内容");
+        writer.addHeaderAlias("createTime","记录时间");
+        //默认配置
+        writer.write(nodeOperVos,true);
+        //设置content—type
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset:utf-8");
+        ServletOutputStream outputStream= null;
+        try{
+            String fileName= URLEncoder.encode("历史节点变动日志","UTF-8");
+            //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
+            response.setHeader("Content-Disposition","attachment;filename="+fileName+".xlsx");
+            outputStream= response.getOutputStream();
+            //将Writer刷新到OutPut
+            writer.flush(outputStream,true);
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }finally {
+            if( StringUtils.isEmpty(outputStream) ){
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    writer.close();
+                    throw new RuntimeException(e);
+                }
+            }
+            writer.close();
+        }
+    }
+
+    @ApiOperation("根据nodeId获取当前节点记录的历史岗位变动日志内容")
+    @GetMapping("/get/position/log/{nodeId}")
+    public AjaxResult getPostionOperLog(@ApiParam("节点参数") @PathVariable Integer nodeId){
+        List<PositionOperLog> positionOperLogs = positionOperLogService.selectListByNodeId(nodeId);
+        return AjaxResult.success(positionOperLogs);
+    }
+
+    @ApiOperation("根据nodeId获取当前节点记录的历史节点变动日志内容(excel)")
+    @GetMapping("/get/position/log/{nodeId}/excel")
+    public void exportPositionOperLog(@PathVariable Integer nodeId, HttpServletResponse response){
+        List<PositionOperLog> positionOperLogs = positionOperLogService.selectListByNodeId(nodeId);
+        ArrayList<PositionOperLogVo> positionOperLogVos = new ArrayList<>();
+        Iterator<PositionOperLog> iterator = positionOperLogs.iterator();
+        int index = 1;
+        while( iterator.hasNext() ){
+            PositionOperLog next = iterator.next();
+            PositionOperLogVo positionOperLogVo = new PositionOperLogVo();
+            BeanUtils.copyProperties(next,positionOperLogVo);
+            positionOperLogVo.setIndex(index++);
+            positionOperLogVos.add(positionOperLogVo);
+        }
+        //在内存操作，写到浏览器
+        ExcelWriter writer= ExcelUtil.getWriter(true);
+        //自定义标题别名
+        writer.addHeaderAlias("index","序号");
+        writer.addHeaderAlias("context","操作内容");
+        writer.addHeaderAlias("createTime","记录时间");
+        //默认配置
+        writer.write(positionOperLogVos,true);
+        //设置content—type
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset:utf-8");
+        ServletOutputStream outputStream= null;
+        try{
+            String fileName= URLEncoder.encode("历史岗位变动日志","UTF-8");
+            //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
+            response.setHeader("Content-Disposition","attachment;filename="+fileName+".xlsx");
+            outputStream= response.getOutputStream();
+            //将Writer刷新到OutPut
+            writer.flush(outputStream,true);
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }finally {
+            if( StringUtils.isEmpty(outputStream) ){
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    writer.close();
+                    throw new RuntimeException(e);
+                }
+            }
+            writer.close();
+        }
+    }
+
+    @Autowired
+    private ScheduledUpdate scheduledUpdate;
+
+    @GetMapping("updateNode")
+    public String updateNode(){
+        scheduledUpdate.updateNode();
+        return "updateNode";
+    }
+
+    @GetMapping("updatePositon")
+    public String updatePosition(){
+        scheduledUpdate.update();
+        return "updatePosition";
+    }
+
+
 
 }

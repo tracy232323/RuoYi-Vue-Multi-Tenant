@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.demo.mapper.NodeOperLogMapper">
+    <resultMap id="BaseResultMap" type="com.ruoyi.demo.domain.NodeOperLog">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="nodeId" column="node_id" javaType="INTEGER" />
+        <result property="context" column="context" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="deleted" column="deleted" jdbcType="INTEGER"/>
+    </resultMap>
+
+
+    <select id="selectListByNodeId" resultMap="BaseResultMap">
+        select * from node_oper_log
+        where node_id = #{nodeId}
+    </select>
+
+    <insert id="add" >
+        insert into node_oper_log(node_id,context) values (#{nodeId},#{context})
+    </insert>
+
+    <update id="updateById">
+        update node_oper_log
+        set node_id = #{nodeId}
+        where id = #{id};
+    </update>
+
+</mapper>
