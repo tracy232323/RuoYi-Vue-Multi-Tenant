@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.demo.mapper.UserInfoMapper">
+
+    <resultMap id="BaseResultMap" type="com.ruoyi.demo.domain.UserInfo">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="providerId" column="provider_id" jdbcType="VARCHAR"/>
+        <result property="userId" column="user_id" jdbcType="INTEGER"/>
+        <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
+        <result property="position" column="position" jdbcType="VARCHAR"/>
+        <result property="dept" column="dept" jdbcType="VARCHAR"/>
+        <result property="unit" column="unit" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+<!--        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>-->
+<!--        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>-->
+<!--        <result property="deleted" column="deleted" jdbcType="INTEGER"/>-->
+    </resultMap>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        select * from user_info
+    </select>
+
+    <delete id="delete" >
+        delete from user_info
+        where id = #{id}
+    </delete>
+
+    <insert id="add">
+        insert into user_info(provider_id, node_id, user_id, name, unit, dept, position) values (#{providerId},#{nodeId},#{userId},#{name},#{unit},#{dept},#{position})
+    </insert>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        select * from user_info
+        where provider_id = #{providerId} AND node_id = #{orgId}
+    </select>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        insert into user_info(provider_id, node_id, user_id, name, unit, dept, position) Values
+        <foreach collection="list" item="user" separator=",">
+            (#{user.providerId},
+             #{user.nodeId},
+             #{user.userId},
+             #{user.name},
+             #{user.unit},
+             #{user.dept},
+             #{user.position})
+        </foreach>
+    </insert>
+
+    <select id="selectListByProviderId" resultMap="BaseResultMap">
+        select * from user_info
+        where provider_id = #{providerId}
+    </select>
+
+    <select id="selectListByNodes" resultMap="BaseResultMap">
+        select provider_id, node_id, user_id, name, unit, dept, position from user_info
+        where
+        <foreach collection="list" item="user" separator=",">
+            (#{user.providerId},
+            #{user.nodeId},
+            #{user.userId},
+            #{user.name},
+            #{user.unit},
+            #{user.dept},
+            #{user.position})
+        </foreach>
+    </select>
+
+</mapper>

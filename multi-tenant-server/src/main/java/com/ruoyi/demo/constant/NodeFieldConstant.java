@@ -14,5 +14,6 @@ public class NodeFieldConstant {
     public static final String ORDER_FIELD_NAME = "order";
     public static final String CHILDREN_FIELD_NAME = "children";
     public static final Integer ROOT_NODE = -1;
-    public static final String POSITION_ID = "id";
+    public static final String VIRTUAL_FIELD_NAME = "virtual";
+    public static final String USERS_FIELD_NAME = "users";
 }

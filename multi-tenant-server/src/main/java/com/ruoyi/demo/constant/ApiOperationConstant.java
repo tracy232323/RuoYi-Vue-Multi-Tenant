@@ -22,6 +22,7 @@ public class ApiOperationConstant {
     public static final String AUTHORIZATION = "authorization";
     public static final String GET_ALL_ORGANIZATION_URL = "https://hrapitest.crcc.cn/api/hr/orglist";
     public static final String GET_ORGANIZATION_CHILDREN_URL = "https://hrapitest.crcc.cn/api/hr/tree/{providerId}/{companyId}";
+    public static final String GET_ORGANIZATION_USER_ALL_URL = "https://hrapitest.crcc.cn/api/hr/tree/{providerId}/{companyId}/users";
     public static final String PROVIDER_ID = "{providerId}";
     public static final String COMPANY_ID = "{companyId}";
     public static final String POSITION_ID = "{positionId}";

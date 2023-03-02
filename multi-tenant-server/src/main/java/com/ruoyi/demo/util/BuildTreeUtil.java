@@ -44,24 +44,12 @@ public class BuildTreeUtil {
             allNodeInfoMap.put(next.getNodeId(), next);
         }
         Integer rootNodeId = 0;
-//        if (analogData.size() >= 1) {
-//            NodeInfo nodeInfo = analogData.get(0);
-//            rootNodeId = getRootNodeId(allNodeInfoMap, nodeInfo.getNodeId());
-//        }
         Map<Integer, TreeNode> nodeInfoMap = new HashMap<Integer, TreeNode>();
         for (NodeInfo nodeInfo : analogData) {
             buildShowTree(allNodeInfoMap, nodeInfoMap, nodeInfo.getNodeId());
         }
         TreeNode treeNode = nodeInfoMap.get(rootNodeId);
         return JSONUtil.toJsonStr(treeNode);
-    }
-
-    public Integer getRootNodeId(HashMap<Integer, NodeInfo> allNodeInfoMap, Integer id) {
-        NodeInfo nodeInfo = allNodeInfoMap.get(id);
-        if (NodeFieldConstant.ROOT_NODE.equals(nodeInfo.getFatherId())) {
-            return nodeInfo.getNodeId();
-        }
-        return getRootNodeId(allNodeInfoMap, nodeInfo.getFatherId());
     }
 
     public void buildShowTree(HashMap<Integer, NodeInfo> allNodeInfoMap, Map<Integer, TreeNode> nodeInfoMap, Integer id) {

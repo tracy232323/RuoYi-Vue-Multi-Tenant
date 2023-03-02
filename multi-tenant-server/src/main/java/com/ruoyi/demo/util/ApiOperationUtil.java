@@ -60,7 +60,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取所有的二级组织信息
-     *
      * @param url 获取所有的二级组织信息url
      * @return
      */
@@ -85,7 +84,6 @@ public class ApiOperationUtil {
 
     /**
      * 获取所有的二级组织下所有的机构
-     *
      * @param url 获取所有的二级组织下机构集合url
      * @return
      */
@@ -346,6 +344,35 @@ public class ApiOperationUtil {
         } else if (status == HttpStatusConstant.Unauthorized) {
             accessToken = null;
             return getUserInfo(url, providerId, userId);
+        } else {
+            throw new CustomException("调用" + url + "失败，状态码为:" + status);
+        }
+    }
+
+    /**
+     * 获取当前组织的组织结构以及用户信息
+     * @param url url
+     * @param providerId providerId
+     * @param companyId companyId
+     * @return
+     */
+    public String getOrganizationAndUserAll(String url, String providerId, Integer companyId ){
+        if (StringUtils.isEmpty(accessToken)) {
+            getAccessToken(ApiOperationConstant.GET_ACCESS_TOKEN_URL, ApiOperationConstant.CLIENT_CREDENTIALS, ApiOperationConstant.CLIENT_ID, ApiOperationConstant.CLIENT_SECRET);
+        }
+        // 替换url中的指定参数
+        url = url.replace(ApiOperationConstant.PROVIDER_ID, providerId);
+        url = url.replace(ApiOperationConstant.COMPANY_ID, companyId.toString());
+        HttpResponse execute = HttpRequest.get(url)
+                .header(ApiOperationConstant.AUTHORIZATION, "Bearer " + accessToken)
+                .execute();
+        int status = execute.getStatus();
+        if (status == HttpStatusConstant.OK) {
+            String result = execute.body();
+            return result;
+        } else if (status == HttpStatusConstant.Unauthorized) {
+            accessToken = null;
+            return getUserInfo(url, providerId, companyId);
         } else {
             throw new CustomException("调用" + url + "失败，状态码为:" + status);
         }

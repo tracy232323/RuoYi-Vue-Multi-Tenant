@@ -22,6 +22,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 @NoArgsConstructor
 @Builder
 public class NodeInfo implements Serializable {
+
     /**
      * 节点id
      */

@@ -26,6 +26,8 @@ import java.util.*;
 @Component
 public class CommonUtil {
 
+    public static Map<String,List<UserInfo>> providerUsers = new HashMap<String,List<UserInfo>>();
+
     @Autowired
     private NodeOperLogMapper nodeOperLogMapper;
 
@@ -150,8 +152,44 @@ public class CommonUtil {
     }
 
 
-
-
-
-
+    public void organizationAndUserAll(List<UserInfo> userInfos, JSONObject data, String providerId, StringBuilder path, String dept) {
+        StringBuilder pathStr = new StringBuilder(path);
+        Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
+        String name = data.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
+        if(!ApiOperationConstant.TYPE_POSITION.equals(type)){
+            if( ApiOperationConstant.TYPE_DEPT.equals(type) ){
+                dept = name;
+            }
+            String virtual = data.get(NodeFieldConstant.VIRTUAL_FIELD_NAME,String.class);
+            if( "false".equals(virtual) ){
+                pathStr.append("/").append(name);
+            }
+            String childrenJson = data.get(NodeFieldConstant.CHILDREN_FIELD_NAME, String.class);
+            if (!"null".equals(childrenJson)) {
+                List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
+                for (JSONObject child : childrens) {
+                    organizationAndUserAll(userInfos, child,providerId, pathStr, dept);
+                }
+            }
+        }
+        String childrenJson = data.get(NodeFieldConstant.USERS_FIELD_NAME, String.class);
+        if (!"null".equals(childrenJson)) {
+            List<JSONObject> childrens = new JSONArray(childrenJson).toList(JSONObject.class);
+            Integer nodeId = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
+            for (JSONObject child : childrens) {
+                //读取岗位信息，并开始收集用户数据
+                UserInfo userInfo = new UserInfo();
+                userInfo.setPosition(name);
+                userInfo.setNodeId(nodeId);
+                userInfo.setProviderId(providerId);
+                userInfo.setDept(dept);
+                Integer userId = child.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
+                userInfo.setUserId(userId);
+                String userName = child.get(NodeFieldConstant.NAME_FIELD_NAME, String.class);
+                userInfo.setName(userName);
+                userInfo.setUnit(path + " " + userName);
+                userInfos.add(userInfo);
+            }
+        }
+    }
 }

@@ -18,4 +18,9 @@ public class ReqRootTree implements Serializable {
 
     @ApiModelProperty("岗位id")
     public Integer positionId;
+
+    public Integer pageNum;
+
+    public Integer pageSize;
+
 }

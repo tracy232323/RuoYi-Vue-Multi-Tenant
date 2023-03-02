@@ -10,6 +10,7 @@ import com.ruoyi.demo.constant.RedisConstant;
 import com.ruoyi.demo.domain.*;
 import com.ruoyi.demo.mapper.NodeOperLogMapper;
 import com.ruoyi.demo.mapper.PositionOperLogMapper;
+import com.ruoyi.demo.mapper.UserInfoMapper;
 import com.ruoyi.demo.service.MapUserNodeService;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.service.RootUserService;
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
  **/
 @Configuration
 @Slf4j
-public class InitTest {
+public class InitRootTreeConfig {
     @Autowired
     private ApiOperationUtil apiOperationUtil;
     @Autowired
@@ -50,6 +51,8 @@ public class InitTest {
     private NodeOperLogMapper nodeOperLogMapper;
     @Autowired
     private PositionOperLogMapper positionOperLogMapper;
+    @Autowired
+    private UserInfoMapper userInfoMapper;
 
     @PostConstruct
     public void init() {
@@ -62,9 +65,11 @@ public class InitTest {
         String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
         List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
         List<NodeInfo> tempList = new ArrayList<>();
+        List<String> providerIds =  new ArrayList<>();
         tempList.add(commonUtil.getRootNode());
         for (JSONObject organizationInfo : organizationInfos) {
             String providerId = organizationInfo.get("id").toString();
+            providerIds.add(providerId);
             JSONObject root = new JSONObject(organizationInfo.get("root"));
             Integer id = Integer.parseInt(root.get("id").toString());
             String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, providerId, id);
@@ -72,7 +77,6 @@ public class InitTest {
             commonUtil.getOrganizationChildren(tempList, new JSONObject(organizationChildren), providerId, 0);
         }
         // 这里是存在逻辑。进行数据对比，获取不同的数据
-
         // 看看需要删除多少节点
         // 差集 (list2 - list1)
         List<NodeInfo> reduce2 = nodeList.stream().filter(item -> !tempList.contains(item)).collect(Collectors.toList());
@@ -175,6 +179,11 @@ public class InitTest {
             // 第六步：存放内存即可
             String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
             BuildTreeUtil.rootTree.put(key, treeJSON);
+        }
+        for (String providerId : providerIds) {
+            // 获取hr系统中二级节点下的完整路径。去迭代遍历并收集用户信息
+            log.info("正在构建:{}的用户缓存",providerId);
+            CommonUtil.providerUsers.put(providerId,userInfoMapper.selectListByProviderId(providerId));
         }
     }
 

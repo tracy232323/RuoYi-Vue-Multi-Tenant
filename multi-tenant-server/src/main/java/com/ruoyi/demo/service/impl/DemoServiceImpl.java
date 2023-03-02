@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.ruoyi.common.exception.CustomException;
 import com.ruoyi.demo.constant.ApiOperationConstant;
 import com.ruoyi.demo.constant.NodeFieldConstant;
@@ -11,11 +13,14 @@ import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.NodeInfo;
 import com.ruoyi.demo.constant.RedisConstant;
 import com.ruoyi.demo.domain.TreeNode;
+import com.ruoyi.demo.domain.UserInfo;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
+import com.ruoyi.demo.domain.vo.UserInfoVo;
 import com.ruoyi.demo.mapper.MapUserNodeMapper;
 import com.ruoyi.demo.mapper.NodeInfoMapper;
+import com.ruoyi.demo.mapper.UserInfoMapper;
 import com.ruoyi.demo.service.DemoService;
 import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.util.ApiOperationUtil;
@@ -25,6 +30,9 @@ import com.ruoyi.demo.util.IdObject;
 import com.ruoyi.framework.redis.RedisCache;
 import com.ruoyi.project.monitor.domain.SysOperLog;
 import com.ruoyi.project.monitor.mapper.SysOperLogMapper;
+import com.ruoyi.project.system.domain.SysUser;
+import com.ruoyi.project.system.mapper.SysUserMapper;
+import org.apache.ibatis.annotations.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +41,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.util.StringUtils;
+
+import javax.xml.soap.Node;
 
 
 @Service
@@ -53,6 +63,10 @@ public class DemoServiceImpl implements DemoService {
     private CommonUtil commonUtil;
     @Autowired
     private SysOperLogMapper sysOperLogMapper;
+    @Autowired
+    private UserInfoMapper userInfoMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public String getOringTree(ReqRootTree reqRootTree) {
@@ -159,7 +173,29 @@ public class DemoServiceImpl implements DemoService {
         String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
         String loginUserName = new JSONObject(loginUser).get("name", String.class);
         for (Integer id : ids) {
+            MapUserNode userNodeMap = mapUserNodeMapper.selectOneById(id);
             mapUserNodeMapper.update2Auth(id, reqAuth.getIsManage(), reqAuth.getIsShow());
+            String mappingId = userNodeMap.getCompanyId()+"|"+userNodeMap.getUserId();
+            // 判断系统用户表有没有这个人，有的
+            SysUser sysUser = sysUserMapper.selectUserByMappingId(mappingId);
+            // 检测权限，如果是无浏览，则删除这个人
+            if( ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE.equals(reqAuth.getIsShow()) ){
+                if( !StringUtils.isEmpty(sysUser) ){
+                    //删除
+                    sysUserMapper.deleteUserById(sysUser.getUserId());
+                }
+            }else{
+                if( StringUtils.isEmpty(sysUser) ){
+                    //添加
+                    SysUser addUser = new SysUser();
+                    addUser.setUserName("admin"+userNodeMap.getUserId());
+                    addUser.setNickName(userNodeMap.getUserId().toString());
+                    addUser.setMappingId(mappingId);
+                    addUser.setMappingPwd("admin123");
+                    sysUserMapper.insertUser(addUser);
+                }
+            }
+
             // 根据id获取映射表信息，从中获取nodeId
             MapUserNode mapUserNode = mapUserNodeMapper.selectOneById(id);
             // 根据id获取node信息
@@ -279,31 +315,148 @@ public class DemoServiceImpl implements DemoService {
     }
 
     @Override
-    public List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree) {
-        List<JSONObject> list = new ArrayList<>();
-        getOrgUsers(reqRootTree.getProviderId(), reqRootTree.getType(), reqRootTree.getOrgId(), reqRootTree.getPositionId(), list);
-        for (JSONObject jsonObject : list) {
-            //判断用户状态
-            NodeInfo nodeInfo = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
-            MapUserNode mapUserNode = null;
-            if (3 == nodeInfo.getType()) {
-                Integer fatherId = nodeInfo.getFatherId();
-                NodeInfo node = nodeInfoMapper.selectOne(reqRootTree.getProviderId(), fatherId);
-                mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("id"), node.getId());
-            } else {
-                mapUserNode = mapUserNodeMapper.selectOne(reqRootTree.getProviderId(), jsonObject.getInt("id"), nodeInfo.getId());
-            }
-
-            if (!ApiOperationConstant.AUTHORITY_SHOW_VALUE.equals(mapUserNode.getIsShow())) {
-                continue;
-            }
-            String orgPath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, reqRootTree.getProviderId(), jsonObject.getInt("positionId"));
-            String path = commonUtil.buildUserPathFromTree(orgPath);
-            jsonObject.putOpt("path", path);
+    public UserInfoVo getNodeAllUser(ReqRootTree reqRootTree) {
+        Integer pageSize = reqRootTree.getPageSize();
+        Integer pageNum = reqRootTree.getPageNum();
+        UserInfoVo userInfoVo = new UserInfoVo();
+        List<UserInfo> infos = new ArrayList<>();
+        // 获取当前节点组织树用户数据
+        if( reqRootTree.getProviderId().equals("demo") ){
+            return userInfoVo;
         }
-        redisCache.setCacheObject("getNodeAllUser", JSONUtil.toJsonStr(list), 60, TimeUnit.MINUTES);
-        return list;
+        if ( ApiOperationConstant.TYPE_POSITION.equals(reqRootTree.getType()) ){
+            // 直接执行获取用户的
+            infos =  userInfoMapper.selectList(reqRootTree.getProviderId(), reqRootTree.getOrgId());
+            userInfoVo.setTotal(infos.size());
+            List<UserInfo> page = getPage(infos,pageNum,pageSize);
+            userInfoVo.setRecords(page);
+            return userInfoVo;
+        }
+        // 看看是不是二级组织，如果是则直接用二级组织去检索就行了，不用向下去找岗位id
+        String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
+        List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
+        for (JSONObject organizationInfo : organizationInfos) {
+            // 获取hr系统中二级节点下的完整路径。去迭代遍历并收集用户信息
+            String providerId = organizationInfo.get("id").toString();
+            JSONObject root = new JSONObject(organizationInfo.get("root"));
+            Integer id = Integer.parseInt(root.get("id").toString());
+            if( providerId.equals(reqRootTree.getProviderId()) && id.equals(reqRootTree.getOrgId())){
+                infos =  CommonUtil.providerUsers.get(providerId);
+                userInfoVo.setTotal(infos.size());
+                List<UserInfo> page = getPage(infos,pageNum,pageSize);
+                userInfoVo.setRecords(page);
+                return userInfoVo;
+            }
+        }
+        // 向下迭代一下，看当前节点下有多少岗位节点，通过这些岗位节点获取用户信息列表
+        ArrayList<NodeInfo> positionNodes = new ArrayList<>();
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setNodeId(reqRootTree.getOrgId());
+        nodeInfo.setProviderId(reqRootTree.getProviderId());
+        getUsersInfoFromNode(positionNodes,nodeInfo);
+        Iterator<NodeInfo> iterator = positionNodes.iterator();
+        while( iterator.hasNext() ){
+            NodeInfo next = iterator.next();
+            List<UserInfo> userInfos = userInfoMapper.selectList(next.getProviderId(), next.getNodeId());
+            if( !userInfos.isEmpty() ){
+                infos.addAll(userInfos);
+            }
+        }
+        userInfoVo.setTotal(infos.size());
+        List<UserInfo> page = getPage(infos,pageNum,pageSize);
+        userInfoVo.setRecords(page);
+        return userInfoVo;
     }
+
+    @Override
+    public List<UserInfo> getNodeAllUserToExcel(Integer type, String currentProviderId, Integer orgId) {
+        List<UserInfo> infos = new ArrayList<>();
+        // 获取当前节点组织树用户数据
+        if( currentProviderId.equals("demo") ){
+            return infos;
+        }
+        if ( ApiOperationConstant.TYPE_POSITION.equals(type) ){
+            // 直接执行获取用户的
+            return userInfoMapper.selectList(currentProviderId, orgId);
+        }
+        // 看看是不是二级组织，如果是则直接用二级组织去检索就行了，不用向下去找岗位id
+        String allOrganizationInfo = apiOperationUtil.getAllOrganizationInfo(ApiOperationConstant.GET_ALL_ORGANIZATION_URL);
+        List<JSONObject> organizationInfos = new JSONArray(allOrganizationInfo).toList(JSONObject.class);
+        for (JSONObject organizationInfo : organizationInfos) {
+            // 获取hr系统中二级节点下的完整路径。去迭代遍历并收集用户信息
+            String providerId = organizationInfo.get("id").toString();
+            JSONObject root = new JSONObject(organizationInfo.get("root"));
+            Integer id = Integer.parseInt(root.get("id").toString());
+            if( providerId.equals(currentProviderId) && id.equals(orgId)){
+                infos =  CommonUtil.providerUsers.get(providerId);
+                return infos;
+            }
+        }
+        // 向下迭代一下，看当前节点下有多少岗位节点，通过这些岗位节点获取用户信息列表
+        ArrayList<NodeInfo> positionNodes = new ArrayList<>();
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setNodeId(orgId);
+        nodeInfo.setProviderId(currentProviderId);
+        getUsersInfoFromNode(positionNodes,nodeInfo);
+        Iterator<NodeInfo> iterator = positionNodes.iterator();
+        while( iterator.hasNext() ){
+            NodeInfo next = iterator.next();
+            List<UserInfo> userInfos = userInfoMapper.selectList(next.getProviderId(), next.getNodeId());
+            if( !userInfos.isEmpty() ){
+                infos.addAll(userInfos);
+            }
+        }
+        return infos;
+    }
+
+    public List<UserInfo> getPage(List<UserInfo> infos,Integer pageNum, Integer pageSize){
+        Integer count = infos.size();
+        Integer pageCount;
+        if( count % pageSize == 0 ){
+            pageCount = count / pageSize;
+        }else{
+            pageCount = count / pageSize + 1;
+        }
+        int fromIndex;
+        int toIndex;
+        if( !pageCount.equals(pageNum + 1) ){
+            fromIndex = pageNum * pageSize;
+            toIndex = fromIndex + pageSize;
+            if( toIndex > count ){
+                fromIndex = ( pageNum - 1 ) * pageSize;
+                toIndex = count;
+            }
+        }else{
+            fromIndex = pageNum * pageSize;
+            toIndex = count;
+        }
+        return infos.subList(fromIndex, toIndex);
+    }
+
+
+    /**
+     * 通过当前节点获取节点树中的岗位节点列表
+     * @param nodeInfo
+     * @return
+     */
+    public void getUsersInfoFromNode(List<NodeInfo> positionNodes,NodeInfo nodeInfo){
+        List<NodeInfo> nodeInfos = nodeInfoMapper.selectListByFatherId(nodeInfo);
+        if( nodeInfos.isEmpty() ){
+            return;
+        }
+        Iterator<NodeInfo> iterator = nodeInfos.iterator();
+        while (iterator.hasNext()){
+            NodeInfo next = iterator.next();
+            if( ApiOperationConstant.TYPE_POSITION.equals(next.getType()) ){
+                positionNodes.add(next);
+            }else{
+                getUsersInfoFromNode(positionNodes,next);
+            }
+        }
+    }
+
+
+
 
     private void getOrgUsers(String providerId, Integer type, Integer orgId, Integer positionId, List<JSONObject> list) {
         //获取所有二级集团单位集合

@@ -1,10 +1,12 @@
 package com.ruoyi.demo.service;
 
 import cn.hutool.json.JSONObject;
+import com.ruoyi.demo.domain.UserInfo;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.MapUserNode;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
+import com.ruoyi.demo.domain.vo.UserInfoVo;
 
 import java.util.List;
 
@@ -35,7 +37,11 @@ public interface DemoService {
      * @param reqRootTree
      * @return
      */
-    List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree);
+//    List<JSONObject> getNodeAllUser(ReqRootTree reqRootTree);
+
+    UserInfoVo getNodeAllUser(ReqRootTree reqRootTree);
+
+    List<UserInfo> getNodeAllUserToExcel(Integer type, String currentProviderId, Integer orgId);
 
     /**
      * 指定岗位才展示人员

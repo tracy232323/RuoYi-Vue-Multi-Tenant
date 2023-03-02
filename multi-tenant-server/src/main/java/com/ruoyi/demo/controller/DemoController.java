@@ -12,12 +12,11 @@ import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
 import com.ruoyi.demo.domain.NodeOperLog;
 import com.ruoyi.demo.domain.PositionOperLog;
+import com.ruoyi.demo.domain.UserInfo;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
-import com.ruoyi.demo.domain.vo.MapUserNodeVo;
-import com.ruoyi.demo.domain.vo.NodeOperVo;
-import com.ruoyi.demo.domain.vo.PositionOperLogVo;
+import com.ruoyi.demo.domain.vo.*;
 import com.ruoyi.demo.service.DemoService;
 import com.ruoyi.demo.service.NodeOperLogService;
 import com.ruoyi.demo.service.PositionOperLogService;
@@ -129,56 +128,104 @@ public class DemoController {
 
     @ApiOperation("查询节点下所有的用户信息")
     @PostMapping("/getNodeAllUser")
-    public List<JSONObject> getNodeAllUser(@RequestBody ReqRootTree reqRootTree) {
-        return demoService.getPositionAllUser(reqRootTree);
+    public UserInfoVo getNodeAllUser(@RequestBody ReqRootTree reqRootTree) {
+        return demoService.getNodeAllUser(reqRootTree);
     }
 
     @ApiOperation("查询节点下所有的用户信息")
-    @GetMapping("/getNodeAllUser/export")
-    public void export(HttpServletResponse response) throws IOException {
-        //查询所有用户
-        String s = redisCache.getCacheObject("getNodeAllUser").toString();
-        List<JSONObject> list = JSONUtil.toList(s, JSONObject.class);
-        for (JSONObject jsonObject : list) {
-            String path = jsonObject.getStr("path");
-            String[] arr = path.split("/");
-            List<String> paths = Arrays.asList(arr);
-            int size = paths.size();
-            jsonObject.putOpt("dept", paths.get(size - 3));
-            jsonObject.putOpt("org", paths.get(size - 2));
-            jsonObject.putOpt("position", paths.get(size - 1));
-            //需要从实体中去掉，否则会写到excel里
-            jsonObject.remove("gender");
-            jsonObject.remove("catagory");
-            jsonObject.remove("path");
-            jsonObject.remove("positionId");
-            jsonObject.remove("positionStatus");
-            jsonObject.remove("mainPosition");
-            jsonObject.remove("id");
+    @GetMapping("/getNodeAllUser/{type}/{providerId}/{nodeId}/export")
+    public void getNodeAllUserToExcel(@PathVariable Integer type, @PathVariable String providerId, @PathVariable Integer nodeId, HttpServletResponse response) {
+        List<UserInfo> nodeAllUserToExcel = demoService.getNodeAllUserToExcel(type,providerId,nodeId);
+        ArrayList<UserInfoExcel> UserInfoExcel = new ArrayList<>();
+        Iterator<UserInfo> iterator = nodeAllUserToExcel.iterator();
+        int index = 1;
+        while( iterator.hasNext() ){
+            UserInfo next = iterator.next();
+            UserInfoExcel userInfoExcel = new UserInfoExcel();
+            BeanUtils.copyProperties(next,userInfoExcel);
+            userInfoExcel.setIndex(index++);
+            UserInfoExcel.add(userInfoExcel);
         }
         //在内存操作，写到浏览器
-        ExcelWriter writer = ExcelUtil.getWriter(true);
+        ExcelWriter writer= ExcelUtil.getWriter(true);
         //自定义标题别名
-        writer.addHeaderAlias("order", "序号");
-        writer.addHeaderAlias("name", "姓名");
-        writer.addHeaderAlias("dept", "单位");
-        writer.addHeaderAlias("org", "部门");
-        writer.addHeaderAlias("position", "岗位");
+        writer.addHeaderAlias("index","序号");
+        writer.addHeaderAlias("unit","单位");
+        writer.addHeaderAlias("dept","部门");
+        writer.addHeaderAlias("position","岗位");
         //默认配置
-        writer.write(list, true);
-        writer.autoSizeColumnAll();
+        writer.write(UserInfoExcel,true);
         //设置content—type
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset:utf-8");
-        //设置标题
-        String fileName = URLEncoder.encode("用户信息", "UTF-8");
-        //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
-        response.setHeader("Content-Disposition", System.currentTimeMillis() + ".xlsx");
-        ServletOutputStream outputStream = response.getOutputStream();
-        //将Writer刷新到OutPut
-        writer.flush(outputStream, true);
-        outputStream.close();
-        writer.close();
+        ServletOutputStream outputStream= null;
+        try{
+            String fileName= URLEncoder.encode("用户信息表","UTF-8");
+            //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
+            response.setHeader("Content-Disposition","attachment;filename="+fileName+".xlsx");
+            outputStream= response.getOutputStream();
+            //将Writer刷新到OutPut
+            writer.flush(outputStream,true);
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }finally {
+            if( StringUtils.isEmpty(outputStream) ){
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    writer.close();
+                    throw new RuntimeException(e);
+                }
+            }
+            writer.close();
+        }
     }
+
+//    @ApiOperation("查询节点下所有的用户信息(excel)")
+//    @GetMapping("/getNodeAllUser/export")
+//    public void export(HttpServletResponse response) throws IOException {
+//        //查询所有用户
+//        String s = redisCache.getCacheObject("getNodeAllUser").toString();
+//        List<JSONObject> list = JSONUtil.toList(s, JSONObject.class);
+//        for (JSONObject jsonObject : list) {
+//            String path = jsonObject.getStr("path");
+//            String[] arr = path.split("/");
+//            List<String> paths = Arrays.asList(arr);
+//            int size = paths.size();
+//            jsonObject.putOpt("dept", paths.get(size - 3));
+//            jsonObject.putOpt("org", paths.get(size - 2));
+//            jsonObject.putOpt("position", paths.get(size - 1));
+//            //需要从实体中去掉，否则会写到excel里
+//            jsonObject.remove("gender");
+//            jsonObject.remove("catagory");
+//            jsonObject.remove("path");
+//            jsonObject.remove("positionId");
+//            jsonObject.remove("positionStatus");
+//            jsonObject.remove("mainPosition");
+//            jsonObject.remove("id");
+//        }
+//        //在内存操作，写到浏览器
+//        ExcelWriter writer = ExcelUtil.getWriter(true);
+//        //自定义标题别名
+//        writer.addHeaderAlias("order", "序号");
+//        writer.addHeaderAlias("name", "姓名");
+//        writer.addHeaderAlias("dept", "单位");
+//        writer.addHeaderAlias("org", "部门");
+//        writer.addHeaderAlias("position", "岗位");
+//        //默认配置
+//        writer.write(list, true);
+//        writer.autoSizeColumnAll();
+//        //设置content—type
+//        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset:utf-8");
+//        //设置标题
+//        String fileName = URLEncoder.encode("用户信息", "UTF-8");
+//        //Content-disposition是MIME协议的扩展，MIME协议指示MIME用户代理如何显示附加的文件。
+//        response.setHeader("Content-Disposition", System.currentTimeMillis() + ".xlsx");
+//        ServletOutputStream outputStream = response.getOutputStream();
+//        //将Writer刷新到OutPut
+//        writer.flush(outputStream, true);
+//        outputStream.close();
+//        writer.close();
+//    }
 
 
     @ApiOperation("根据providerId和nodeId获取当前节点中被授权对象信息列表(excel)")
@@ -198,7 +245,6 @@ public class DemoController {
         //在内存操作，写到浏览器
         ExcelWriter writer= ExcelUtil.getWriter(true);
         //自定义标题别名
-
         writer.addHeaderAlias("path","授权对象");
         writer.addHeaderAlias("isManage","管理权限");
         writer.addHeaderAlias("isShow","浏览权限");
