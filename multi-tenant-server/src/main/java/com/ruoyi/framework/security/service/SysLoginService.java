@@ -114,9 +114,9 @@ public class SysLoginService {
             AsyncManager.me().execute(AsyncFactory.recordLogininfor(code, Constants.LOGIN_FAIL, msg));
             throw new CustomException(msg);
         }
-        String[] arr = name.split("\\|");
-        String mappingId = arr[1];
-        SysUser sysUser = userService.selectUserByMappingId(mappingId);
+//        String[] arr = name.split("\\|");
+//        String mappingId = arr[1];
+        SysUser sysUser = userService.selectUserByMappingId(name);
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sysUser.getUserName(), sysUser.getMappingPwd()));
         LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(sysUser.getUserName(), Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
