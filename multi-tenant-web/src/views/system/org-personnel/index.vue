@@ -5,49 +5,31 @@
         <el-tree :data="organizationData" :props="orgTreeProps" @node-click="handleNodeClick"></el-tree>
       </el-aside>
       <el-main>
-        <el-row :gutter="10" class="mb8">
+        <!-- <el-row :gutter="10" class="mb8">
           <el-col :span="1.5">
             <el-button>导出excel</el-button>
           </el-col>
-        </el-row>
+        </el-row> -->
 
-        <el-table v-loading="false" :data="personnelList" @selection-change="handleSelectionChange">
-          <el-table-column type="selection" width="55" align="center" />
+        <el-table v-loading="false" :data="personnelList">
+          <!-- <el-table-column type="selection" width="55" align="center" /> -->
           <el-table-column label="序号" align="center" type="index">
             <template slot-scope="scope">
               <span>{{ scope.$index + 1 }}</span>
             </template>
           </el-table-column>
           <el-table-column label="姓名" align="center" prop="name" />
-          <el-table-column label="单位" align="center" prop="comp" />
+          <el-table-column label="单位" align="center" prop="unit" />
           <el-table-column label="部门" align="center" prop="dept" />
-          <el-table-column label="岗位" align="center" prop="post" />
-          <!-- <el-table-column fixed="left" label="操作" align="center" class-name="small-padding fixed-width">
-            <template slot-scope="scope">
-              <el-button
-                size="mini"
-                type="text"
-                icon="el-icon-edit"
-                @click="handleUpdate(scope.row)"
-                v-hasPermi="['system:template:edit']"
-              >修改</el-button>
-              <el-button
-                size="mini"
-                type="text"
-                icon="el-icon-delete"
-                @click="handleDelete(scope.row)"
-                v-hasPermi="['system:template:remove']"
-              >删除</el-button>
-            </template>
-          </el-table-column> -->
+          <el-table-column label="岗位" align="center" prop="position" />
         </el-table>
 
-        <!-- <pagination
+        <pagination
           v-show="total > 0"
           :total="total"
           :page.sync="queryParams.pageNum"
           :limit.sync="queryParams.pageSize"
-          @pagination="getList"/> -->
+          @pagination="getPersonnel"/>
 
       </el-main>
     </el-container>
@@ -72,7 +54,12 @@ export default {
 
       // 组织人员table
       loading: true,
-      personnelList: []
+      personnelList: [],
+      total: 0,
+      queryParams: {
+        pageNum: 1,
+        pageSize: 100,
+      },
     };
   },
   computed: {
@@ -81,8 +68,9 @@ export default {
   methods: {
     getOrgTree() {
       getOrgTreeApi(this.providerId, this.userId).then(res => {
-        const root = this.processTreeData(res)
-        this.organizationData = [root];
+        // const root = this.processTreeData(res)
+        // this.organizationData = [root];
+        this.organizationData = [res]
       })
     },
     processTreeData(orgData) {
@@ -101,20 +89,20 @@ export default {
       // 1：单位 2：部门 3：岗位
       this.currentOrgData = data
       this.getPersonnel()
-      
     },
     getPersonnel() {
       const sendData = {
         type: this.currentOrgData.type,
         providerId: this.currentOrgData.providerId,
-        // positionId: this.currentOrgData.type === 3 ? 
-        orgId: this.currentOrgData.nodeId
+        orgId: this.currentOrgData.nodeId,
+        pageNum: this.queryParams.pageNum - 1,
+        pageSize: this.queryParams.pageSize
       }
-      
       getOrgPersonnelApi(sendData).then(res => {
-        if (res.code === 200) {
-          this.personnelList = res.data
-        }
+        this.total = res.total
+        this.personnelList = res.record
+      }).catch(error => {
+        this.$message.error(error)
       })
     }
   },

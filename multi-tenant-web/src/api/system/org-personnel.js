@@ -82,3 +82,52 @@ export const getNodeList = (providerId, nodeId) => {
 		method: 'get'
 	})
 }
+
+/**
+ * 查询节点变动日志
+ * @param {*} data 
+ * @returns 
+ */
+export function getNodeLogApi(nodeId) {
+  return request({
+    url: `/demo/get/node/log/${nodeId}`,
+    method: 'get',
+  })
+}
+
+/**
+ * 导出节点操作日志
+ * @param {*} nodeId 
+ * @returns 
+ */
+export function exportNodeLogApi(nodeId) {
+  return request({
+    url: `/demo/get/node/log/${nodeId}/excel`,
+    method: 'get',
+  })
+}
+
+
+/**
+ * 查询节点变动日志
+ * @param {*} data 
+ * @returns 
+ */
+export function getPositionLogApi(nodeId) {
+  return request({
+    url: `/demo/get/position/log/${nodeId}`,
+    method: 'get',
+  })
+}
+
+/**
+ * 导出岗位日志
+ * @param {*} nodeId 
+ * @returns 
+ */
+export function exportPositionLogApi(nodeId) {
+  return request({
+    url: `/demo/get/position/log/${nodeId}/excel`,
+    method: 'get',
+  })
+}

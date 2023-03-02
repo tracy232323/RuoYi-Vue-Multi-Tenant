@@ -49,8 +49,36 @@
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="info" icon="el-icon-view" size="mini">
-              查看更新日志
+            <el-button
+              icon="el-icon-delete"
+              size="mini"
+              :disabled="!currentOrgData"
+              @click="exportAuthorize">
+              导出
+            </el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="info" icon="el-icon-view" size="mini"
+              :disabled="!currentOrgData" @click="nodeLogClicked">
+              查看节点变动日志
+            </el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="info" icon="el-icon-view" size="mini"
+              :disabled="!currentOrgData" @click="positionLogClicked">
+              查看岗位变动日志
+            </el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="info" icon="el-icon-view" size="mini"
+              :disabled="!currentOrgData" @click="exportNodeLogClicked">
+              导出节点变动日志
+            </el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="info" icon="el-icon-view" size="mini"
+              :disabled="!currentOrgData" @click="exportPositionLogClicked">
+              导出岗位变动日志
             </el-button>
           </el-col>
         </el-row>
@@ -77,47 +105,40 @@
               <span>{{ scope.row.isShow ? '√' : '╳' }}</span>
             </template>
           </el-table-column>
-          <!-- <el-table-column fixed="left" label="操作" align="center" class-name="small-padding fixed-width">
-            <template slot-scope="scope">
-              <el-button
-                size="mini"
-                type="text"
-                icon="el-icon-edit"
-                @click="handleUpdate(scope.row)"
-                v-hasPermi="['system:template:edit']"
-              >修改</el-button>
-              <el-button
-                size="mini"
-                type="text"
-                icon="el-icon-delete"
-                @click="handleDelete(scope.row)"
-                v-hasPermi="['system:template:remove']"
-              >删除</el-button>
-            </template>
-          </el-table-column> -->
         </el-table>
-
-        <!-- <pagination
-          v-show="total > 0"
-          :total="total"
-          :page.sync="queryParams.pageNum"
-          :limit.sync="queryParams.pageSize"
-          @pagination="getList"/> -->
       </el-main>
     </el-container>
 
-    <!-- 
-    <el-dialog :visible.sync="addPersonDialogVisible" width="800" append-to-body>
+    <!-- 历史节点变动日志列表 -->
+    <el-dialog title="节点变动日志" :visible.sync="nodeLogVisible" width="800" append-to-body>
+      <el-table
+        v-loading="loading"
+        :data="nodeLogList">
+        <el-table-column label="序号" align="center" type="index">
+          <template slot-scope="scope">
+            <span>{{ scope.$index + 1 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="变动时间" align="center" prop="createTime" />
+        <el-table-column label="变动内容" align="center" prop="context" />
+      </el-table>
+    </el-dialog>
 
-      <tree-transfer  height='540px' filter openAll
-        title="增加用户" :from_data='fromData' :to_data='toData'
-        :defaultProps="{ label:'label' }"></tree-transfer>
+    <!-- 历史岗位变动日志列表 -->
+    <el-dialog title="岗位变动日志" :visible.sync="positionLogVisible" width="800" append-to-body>
+      <el-table
+        v-loading="loading"
+        :data="positionLogList">
+        <el-table-column label="序号" align="center" type="index">
+          <template slot-scope="scope">
+            <span>{{ scope.$index + 1 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="变动时间" align="center" prop="createTime" />
+        <el-table-column label="变动内容" align="center" prop="context" />
+      </el-table>
+    </el-dialog>
 
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary">确 定</el-button>
-        <el-button @click="addPersonDialogVisible = false">取 消</el-button>
-      </div>
-    </el-dialog> -->
     <!-- 穿梭轮  -->
     <transfers
       v-if="flag"
@@ -132,8 +153,7 @@
       title="设置用户权限"
       :visible.sync="permissionDialogVisible"
       width="500px"
-      append-to-body
-    >
+      append-to-body>
       <el-form label-width="80px">
         <el-form-item>
           <div>
@@ -149,9 +169,7 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="confirmAuthorization"
-          >确 定</el-button
-        >
+        <el-button type="primary" @click="confirmAuthorization">确 定</el-button>
         <el-button @click="permissionDialogVisible = false">取 消</el-button>
       </div>
     </el-dialog>
@@ -164,8 +182,11 @@ import {
   getOrgAuthorizeListeApi,
   setAuthorizeApi,
   deleteAuthorizeApi,
-  getRootTrees
+  getRootTrees,
+  getNodeLogApi,
+  getPositionLogApi,
 } from '@/api/system/org-personnel'
+import { getToken } from '@/utils/auth'
 // import TreeTransfer from 'el-tree-transfer'
 import { mapGetters } from 'vuex'
 import transfers from '../../../components/TransferTree'
@@ -199,48 +220,16 @@ export default {
       authorizeList: [],
       checkedAuthorizeObjs: [],
 
-      // addPersonDialogVisible: false,
-      fromData: [
-        {
-          id: '1',
-          pid: 0,
-          label: '一级 1',
-          children: [
-            {
-              id: '1-1',
-              pid: '1',
-              label: '二级 1-1',
-              disabled: true,
-              children: []
-            },
-            {
-              id: '1-2',
-              pid: '1',
-              label: '二级 1-2',
-              children: [
-                {
-                  id: '1-2-1',
-                  pid: '1-2',
-                  children: [],
-                  label: '二级 1-2-1'
-                },
-                {
-                  id: '1-2-2',
-                  pid: '1-2',
-                  children: [],
-                  label: '二级 1-2-2'
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      toData: [],
-
       // 授权
       permissionDialogVisible: false,
       manageChecked: false,
-      showChecked: false
+      showChecked: false,
+
+      nodeLogVisible: false,
+      nodeLogList: [],
+
+      positionLogVisible: false,
+      positionLogList: [],
     }
   },
   computed: {
@@ -263,8 +252,9 @@ export default {
 
     getOrgTree() {
       getOrgTreeApi(this.providerId, this.userId).then(res => {
-        const root = this.processTreeData(res)
-        this.organizationData = [root]
+        // const root = this.processTreeData(res)
+        // this.organizationData = [root]
+        this.organizationData = [res]
       })
     },
     processTreeData(orgData) {
@@ -282,8 +272,6 @@ export default {
       return node
     },
     handleNodeClick(data) {
-      // debugger
-      console.log(data, '+++')
       this.departmentIds = data.nodeId
       this.providerIds = data.providerId
       // type 1：单位 2：部门 3：岗位
@@ -344,6 +332,59 @@ export default {
           }
         })
         .catch(function() {})
+    },
+    exportAuthorize() {
+      this.download(`/demo/get/${this.currentOrgData.providerId}/${this.currentOrgData.nodeId}/node/map/excel`)
+    },
+    nodeLogClicked() {
+      this.nodeLogVisible = true
+      getNodeLogApi(this.currentOrgData.id).then(res => {
+        if (res.code === 200) {
+          this.nodeLogList = res.data
+        } else {
+          this.$message.error(res.msg)
+        }
+      })
+    },
+    positionLogClicked() {
+      this.positionLogVisible = true
+      getPositionLogApi(this.currentOrgData.id).then(res => {
+        if (res.code === 200) {
+          this.positionLogList = res.data
+        } else {
+          this.$message.error(res.msg)
+        }
+      })
+    },
+    exportNodeLogClicked() {
+      this.download(`/demo/get/node/log/${this.currentOrgData.id}/excel`)
+    },
+    exportPositionLogClicked() {
+      debugger
+      this.download(`/demo/get/position/log/${this.currentOrgData.id}/excel`)
+    },
+    download(url) {
+      const xmlRequest = new XMLHttpRequest()
+      xmlRequest.open('GET', process.env.VUE_APP_BASE_API + url)
+      xmlRequest.setRequestHeader('Content-Type', 'application/json;charset=UTF-8')
+      xmlRequest.setRequestHeader('Authorization', 'Bearer ' + getToken())
+      xmlRequest.responseType = 'blob'
+      xmlRequest.send()
+      xmlRequest.onload = function(event) {
+        if (xmlRequest.readyState === 4 && xmlRequest.status === 200) {
+          const dispositionStr = xmlRequest.getResponseHeader('Content-disposition')
+          if (!dispositionStr) {
+            this.$message.error('下载失败')
+            return
+          }
+          const dispositionArr = dispositionStr.split(';')
+          const fileName = decodeURIComponent(dispositionArr[1].replace('filename=', ''))
+          const a = document.createElement('a')
+          a.download = fileName
+          a.href = URL.createObjectURL(xmlRequest.response)
+          a.click()
+        }
+      }
     }
   },
   created() {
