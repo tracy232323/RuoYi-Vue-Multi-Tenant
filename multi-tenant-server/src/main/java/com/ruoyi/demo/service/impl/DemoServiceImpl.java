@@ -192,6 +192,8 @@ public class DemoServiceImpl implements DemoService {
                     addUser.setNickName(userNodeMap.getUserId().toString());
                     addUser.setMappingId(mappingId);
                     addUser.setMappingPwd("admin123");
+                    addUser.setAdminFlag(1);
+                    addUser.setSuperAdminFlag(1);
                     sysUserMapper.insertUser(addUser);
                 }
             }

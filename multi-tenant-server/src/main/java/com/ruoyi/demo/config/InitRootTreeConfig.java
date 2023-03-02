@@ -54,7 +54,7 @@ public class InitRootTreeConfig {
     @Autowired
     private UserInfoMapper userInfoMapper;
 
-    @PostConstruct
+//    @PostConstruct
     public void init() {
         apiOperationUtil.getAccessToken(
                 ApiOperationConstant.GET_ACCESS_TOKEN_URL,

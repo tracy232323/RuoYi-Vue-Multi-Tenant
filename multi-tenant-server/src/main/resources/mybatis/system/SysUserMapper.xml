@@ -143,6 +143,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			<if test="comId != null and comId != ''">com_id,</if>
 			<if test="adminFlag != null and adminFlag != ''">admin_flag,</if>
 			<if test="superAdminFlag != null and superAdminFlag != ''">super_admin_flag,</if>
+		<if test="mappingId != null and mappingId != ''">mapping_id,</if>
+		<if test="mappingPwd != null and mappingPwd != ''">mapping_pwd,</if>
 		create_time
  		)values(
  			<if test="userId != null and userId != ''">#{userId},</if>
@@ -160,6 +162,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			<if test="comId != null and comId != ''">#{comId},</if>
 			<if test="adminFlag != null and adminFlag != ''">#{adminFlag},</if>
 			<if test="superAdminFlag != null and superAdminFlag != ''">#{superAdminFlag},</if>
+		<if test="mappingId != null and mappingId != ''">#{mappingId},</if>
+		<if test="mappingPwd != null and mappingPwd != ''">#{mappingPwd},</if>
 		sysdate()
  		)
 	</insert>

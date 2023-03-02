@@ -54,7 +54,7 @@ public class ScheduledUpdate {
     /**
      * 定时更新,每隔一个小时执行一次
      */
-    @PostConstruct
+//    @PostConstruct
     @Scheduled(cron = "0 0 0/1 * * ?")
     @Transactional
     public void update(){
