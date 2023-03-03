@@ -20,9 +20,11 @@ const permission = {
 				// 向后端请求路由数据
 				getRouters().then((res) => {
 					let routerArr = res.data.slice(0, 2)
-          routerArr[1].children =	routerArr[1].children.slice(5, 8)
-          routerArr[0].children =	routerArr[0].children.slice(0, 1)
+					routerArr[1].children = routerArr[1].children.slice(5, 8)
+					routerArr[0].children = routerArr[0].children.slice(0, 1)
+					routerArr[1].children.splice(1, 1)
 					// console.log(routerArr[1].children.slice(5, 8), '++')
+					// console.log(routerArr, '++')
 					const accessedRoutes = filterAsyncRouter(routerArr)
 					// const accessedRoutes = filterAsyncRouter(res.data)
 					accessedRoutes.push({ path: '*', redirect: '/404', hidden: true })

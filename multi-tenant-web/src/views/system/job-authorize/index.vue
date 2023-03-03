@@ -3,91 +3,61 @@
     <!-- {{ departmentIds }} -->
     <el-container>
       <el-aside style="background: white">
-        <el-tree
-          :data="organizationData"
-          :props="orgTreeProps"
-          highlight-current
-          @node-click="handleNodeClick"
-        >
+        <el-tree :data="organizationData" :props="orgTreeProps" highlight-current @node-click="handleNodeClick">
         </el-tree>
       </el-aside>
       <el-main>
         <el-row :gutter="10" class="mb8">
           <el-col :span="1.5">
-            <el-button
-              type="primary"
-              icon="el-icon-plus"
-              size="mini"
-              :disabled="!departmentIds"
-              @click="addPhoClick"
-              v-hasPermi="['system:dict:add']"
-            >
+            <el-button type="primary" icon="el-icon-plus" size="mini" :disabled="!departmentIds" @click="addPhoClick"
+              v-hasPermi="['system:dict:add']">
               新增人员
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button
-              type="success"
-              icon="el-icon-edit"
-              size="mini"
-              :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length"
-              v-hasPermi="['system:dict:edit']"
-              @click="permissionDialogVisible = true"
-            >
+            <el-button type="success" icon="el-icon-edit" size="mini"
+              :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length" v-hasPermi="['system:dict:edit']"
+              @click="permissionDialogVisible = true">
               授权
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button
-              type="danger"
-              icon="el-icon-delete"
-              size="mini"
-              :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length"
-              @click="deleteAuthorize"
-            >
+            <el-button type="danger" icon="el-icon-delete" size="mini"
+              :disabled="!checkedAuthorizeObjs || !checkedAuthorizeObjs.length" @click="deleteAuthorize">
               删除
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button
-              icon="el-icon-delete"
-              size="mini"
-              :disabled="!currentOrgData"
-              @click="exportAuthorize">
+            <el-button icon="el-icon-delete" size="mini" :disabled="!currentOrgData" @click="exportAuthorize">
               导出
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="info" icon="el-icon-view" size="mini"
-              :disabled="!currentOrgData" @click="nodeLogClicked">
+            <el-button type="info" icon="el-icon-view" size="mini" :disabled="!currentOrgData" @click="nodeLogClicked">
               查看节点变动日志
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="info" icon="el-icon-view" size="mini"
-              :disabled="!currentOrgData" @click="positionLogClicked">
+            <el-button type="info" icon="el-icon-view" size="mini" :disabled="!currentOrgData"
+              @click="positionLogClicked">
               查看岗位变动日志
             </el-button>
           </el-col>
-          <el-col :span="1.5">
-            <el-button type="info" icon="el-icon-view" size="mini"
-              :disabled="!currentOrgData" @click="exportNodeLogClicked">
+          <!-- <el-col :span="1.5">
+            <el-button type="info" icon="el-icon-view" size="mini" :disabled="!currentOrgData"
+              @click="exportNodeLogClicked">
               导出节点变动日志
             </el-button>
-          </el-col>
-          <el-col :span="1.5">
-            <el-button type="info" icon="el-icon-view" size="mini"
-              :disabled="!currentOrgData" @click="exportPositionLogClicked">
+          </el-col> -->
+          <!-- <el-col :span="1.5">
+            <el-button type="info" icon="el-icon-view" size="mini" :disabled="!currentOrgData"
+              @click="exportPositionLogClicked">
               导出岗位变动日志
             </el-button>
-          </el-col>
+          </el-col> -->
         </el-row>
 
-        <el-table
-          v-loading="loading"
-          :data="authorizeList"
-          @selection-change="handleSelectionAuthChange"
-        >
+        <el-table v-loading="loading" :data="authorizeList" @selection-change="handleSelectionAuthChange">
           <el-table-column type="selection" width="55" align="center" />
           <el-table-column label="序号" align="center" type="index">
             <template slot-scope="scope">
@@ -111,9 +81,10 @@
 
     <!-- 历史节点变动日志列表 -->
     <el-dialog title="节点变动日志" :visible.sync="nodeLogVisible" width="800" append-to-body>
-      <el-table
-        v-loading="loading"
-        :data="nodeLogList">
+      <el-button type="info" icon="el-icon-view" size="mini" :disabled="!currentOrgData" @click="exportNodeLogClicked">
+        导出节点变动日志
+      </el-button>
+      <el-table v-loading="loading" :data="nodeLogList">
         <el-table-column label="序号" align="center" type="index">
           <template slot-scope="scope">
             <span>{{ scope.$index + 1 }}</span>
@@ -126,9 +97,11 @@
 
     <!-- 历史岗位变动日志列表 -->
     <el-dialog title="岗位变动日志" :visible.sync="positionLogVisible" width="800" append-to-body>
-      <el-table
-        v-loading="loading"
-        :data="positionLogList">
+      <el-button type="info" icon="el-icon-view" size="mini" :disabled="!currentOrgData"
+        @click="exportPositionLogClicked">
+        导出岗位变动日志
+      </el-button>
+      <el-table v-loading="loading" :data="positionLogList">
         <el-table-column label="序号" align="center" type="index">
           <template slot-scope="scope">
             <span>{{ scope.$index + 1 }}</span>
@@ -140,31 +113,16 @@
     </el-dialog>
 
     <!-- 穿梭轮  -->
-    <transfers
-      v-if="flag"
-      :flag.sync="flag"
-      :title="title"
-      :rootData="rootData"
-      :departmentIds="departmentIds"
-      :providerIds="providerIds"
-      @refreshFn="handleNodeClick"
-    ></transfers>
-    <el-dialog
-      title="设置用户权限"
-      :visible.sync="permissionDialogVisible"
-      width="500px"
-      append-to-body>
+    <transfers v-if="flag" :flag.sync="flag" :title="title" :rootData="rootData" :departmentIds="departmentIds"
+      :providerIds="providerIds" @refreshFn="handleNodeClick"></transfers>
+    <el-dialog title="设置用户权限" :visible.sync="permissionDialogVisible" width="500px" append-to-body>
       <el-form label-width="80px">
         <el-form-item>
           <div>
-            <el-checkbox v-model="manageChecked" @change="manageCheckedChanged"
-              >管理</el-checkbox
-            >
+            <el-checkbox v-model="manageChecked" @change="manageCheckedChanged">管理</el-checkbox>
           </div>
           <div>
-            <el-checkbox v-model="showChecked" :disabled="manageChecked"
-              >浏览</el-checkbox
-            >
+            <el-checkbox v-model="showChecked" :disabled="manageChecked">浏览</el-checkbox>
           </div>
         </el-form-item>
       </el-form>
@@ -197,7 +155,7 @@ export default {
     // TreeTransfer
     transfers
   },
-  data() {
+  data () {
     return {
       // 穿梭轮------------state
       flag: false,
@@ -237,27 +195,28 @@ export default {
   },
   methods: {
     // 获取最顶层
-    async getTopRoot() {
+    async getTopRoot () {
       try {
         const res = await getRootTrees({})
         console.log(res, '顶层root')
         this.rootData = res
-      } catch (error) {}
+      } catch (error) { }
     },
     // 新增用户按钮
-    addPhoClick(val) {
+    addPhoClick (val) {
       this.flag = true
       console.log(val, this.flag)
     },
 
-    getOrgTree() {
+    getOrgTree () {
       getOrgTreeApi(this.providerId, this.userId).then(res => {
+        console.log(res, 'root++');
         // const root = this.processTreeData(res)
         // this.organizationData = [root]
         this.organizationData = [res]
       })
     },
-    processTreeData(orgData) {
+    processTreeData (orgData) {
       const node = {
         id: orgData.nodeInfo.id,
         fatherId: orgData.nodeInfo.fatherId,
@@ -271,14 +230,15 @@ export default {
       }
       return node
     },
-    handleNodeClick(data) {
+    handleNodeClick (data) {
+      console.log(data, '节点点击');
       this.departmentIds = data.nodeId
       this.providerIds = data.providerId
       // type 1：单位 2：部门 3：岗位
       this.currentOrgData = data
       this.getAuthorizeList()
     },
-    getAuthorizeList() {
+    getAuthorizeList () {
       this.loading = true
       getOrgAuthorizeListeApi(
         this.currentOrgData.providerId,
@@ -290,15 +250,15 @@ export default {
         }
       })
     },
-    handleSelectionAuthChange(selection) {
+    handleSelectionAuthChange (selection) {
       this.checkedAuthorizeObjs = selection
     },
-    manageCheckedChanged(checked) {
+    manageCheckedChanged (checked) {
       if (checked) {
         this.showChecked = true
       }
     },
-    confirmAuthorization() {
+    confirmAuthorization () {
       const sendData = {
         ids: this.checkedAuthorizeObjs.map(obj => obj.id),
         isManage: this.manageChecked ? 1 : 0,
@@ -312,8 +272,8 @@ export default {
         }
       })
     },
-    addPersonClicked() {},
-    deleteAuthorize() {
+    addPersonClicked () { },
+    deleteAuthorize () {
       this.$confirm('确认删除授权节点吗?', '警告', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -331,14 +291,16 @@ export default {
             this.getAuthorizeList()
           }
         })
-        .catch(function() {})
+        .catch(function () { })
     },
-    exportAuthorize() {
+    exportAuthorize () {
       this.download(`/demo/get/${this.currentOrgData.providerId}/${this.currentOrgData.nodeId}/node/map/excel`)
     },
-    nodeLogClicked() {
+    nodeLogClicked () {
+      console.log(this.currentOrgData, 'ids?');
       this.nodeLogVisible = true
-      getNodeLogApi(this.currentOrgData.id).then(res => {
+      getNodeLogApi(this.currentOrgData.providerId, this.currentOrgData.nodeId
+      ).then(res => {
         if (res.code === 200) {
           this.nodeLogList = res.data
         } else {
@@ -346,9 +308,9 @@ export default {
         }
       })
     },
-    positionLogClicked() {
+    positionLogClicked () {
       this.positionLogVisible = true
-      getPositionLogApi(this.currentOrgData.id).then(res => {
+      getPositionLogApi(this.currentOrgData.providerId, this.currentOrgData.nodeId).then(res => {
         if (res.code === 200) {
           this.positionLogList = res.data
         } else {
@@ -356,21 +318,23 @@ export default {
         }
       })
     },
-    exportNodeLogClicked() {
-      this.download(`/demo/get/node/log/${this.currentOrgData.id}/excel`)
+    exportNodeLogClicked () {
+      console.log(this.currentOrgData, 'this.currentOrgData.id');
+      this.download(`/demo/get/node/log/${this.currentOrgData.providerId}/${this.currentOrgData.nodeId}/excel`)
     },
-    exportPositionLogClicked() {
-      debugger
-      this.download(`/demo/get/position/log/${this.currentOrgData.id}/excel`)
+    exportPositionLogClicked () {
+      console.log(this.currentOrgData, 'this.currentOrgData.id');
+      // debugger
+      this.download(`/demo/get/position/log/${this.currentOrgData.providerId}/${this.currentOrgData.nodeId}/excel`)
     },
-    download(url) {
+    download (url) {
       const xmlRequest = new XMLHttpRequest()
       xmlRequest.open('GET', process.env.VUE_APP_BASE_API + url)
       xmlRequest.setRequestHeader('Content-Type', 'application/json;charset=UTF-8')
       xmlRequest.setRequestHeader('Authorization', 'Bearer ' + getToken())
       xmlRequest.responseType = 'blob'
       xmlRequest.send()
-      xmlRequest.onload = function(event) {
+      xmlRequest.onload = function (event) {
         if (xmlRequest.readyState === 4 && xmlRequest.status === 200) {
           const dispositionStr = xmlRequest.getResponseHeader('Content-disposition')
           if (!dispositionStr) {
@@ -387,7 +351,7 @@ export default {
       }
     }
   },
-  created() {
+  created () {
     this.getOrgTree()
     this.getTopRoot()
   }
