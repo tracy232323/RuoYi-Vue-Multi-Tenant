@@ -25,6 +25,7 @@ public interface ISysOperLogService
      */
     public List<SysOperLog> selectOperLogList(SysOperLog operLog, String providerId, Integer userId);
 
+    public List<SysOperLog> selectOperLogList(SysOperLog operLog);
     /**
      * 批量删除系统操作日志
      * 

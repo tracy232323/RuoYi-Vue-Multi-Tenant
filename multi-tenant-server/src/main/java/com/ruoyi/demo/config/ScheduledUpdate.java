@@ -16,6 +16,7 @@ import com.ruoyi.demo.util.BuildTreeUtil;
 import com.ruoyi.demo.util.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
  **/
 @Component
 @Slf4j
+@EnableScheduling
 public class ScheduledUpdate {
     @Autowired
     private MapUserNodeMapper mapUserNodeMapper;
@@ -55,7 +57,8 @@ public class ScheduledUpdate {
      * 定时更新,每隔一个小时执行一次
      */
 //    @PostConstruct
-    @Scheduled(cron = "0 0 0/1 * * ?")
+//    @Scheduled(cron = "0 0/10 * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ?")
     @Transactional
     public void update(){
         // 获取当前被授权节点上的所有用户信息(去重)
@@ -71,11 +74,11 @@ public class ScheduledUpdate {
             // 检索出当前用户在被授权节点中所拥有的岗位
             List<MapUserNode> nodePositionIds = mapUserNodeMapper.selectPositionListByUser(user.getCompanyId(),user.getUserId());
             // 进行对比(用nodePositionIds去对比positionIds即可，知道当前用户被授权节点上记录的岗位是否发生变化)
-            List<MapUserNode> changePositionIds = nodePositionIds.stream().filter(item -> positionIds.contains(item.getPosId())).collect(Collectors.toList());
+            List<MapUserNode> changePositionIds = nodePositionIds.stream().filter(item -> !positionIds.contains(item.getPosId())).collect(Collectors.toList());
             // changePositionIds中记录的岗位id，都是需要进行替换数据的岗位id，由于同步方式无法知道更换到什么岗位上去的了，所以一律换成主岗位
             // 获取当前用户的主岗位
             if( changePositionIds.isEmpty() ){
-                return;
+                continue;
             }
             String mainPositionInfo = apiOperationUtil.getMainPositionByUser(ApiOperationConstant.GET_MAIN_POSITION_URL, user.getCompanyId(), user.getUserId());
             Integer id = new JSONObject(mainPositionInfo).get("id", Integer.class);
@@ -86,10 +89,12 @@ public class ScheduledUpdate {
             path = path + " " + name;
             for( MapUserNode changePositionId : changePositionIds ){
                 // 去修改并记录
+                log.info("修改记录,companyId：{},userId:{},position:{},path:{}",user.getCompanyId(),user.getUserId(),changePositionId.getPosId(),path);
                 mapUserNodeMapper.updatePathByPosition(user.getCompanyId(),user.getUserId(),changePositionId.getPosId(),path);
                 // 记录日志
                 String context = changePositionId.getPath() + " 被修改为 "+ path;
-                Integer nodeId = changePositionId.getId();
+                Integer nodeId = changePositionId.getNodeId();
+                log.info("日志记录：node:{},context:{}",nodeId,context);
                 positionOperLogMapper.add(nodeId,context);
             }
         }
@@ -98,7 +103,8 @@ public class ScheduledUpdate {
     /**
      * 定时更新,每隔一个小时执行一次
      */
-    @Scheduled(cron = "0 0 0/2 * * ?")
+//    @Scheduled(cron = "0 0 0/2 * * ?")
+//    @Scheduled(cron = "0 0/20 * * * ?")
     @Transactional
     public void updateNode(){
         log.info("开始触发节点更新操作");

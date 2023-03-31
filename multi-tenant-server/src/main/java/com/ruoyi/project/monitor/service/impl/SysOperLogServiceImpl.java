@@ -73,6 +73,11 @@ public class SysOperLogServiceImpl implements ISysOperLogService
         return operLogMapper.selectOperLogList(operLog);
     }
 
+    @Override
+    public List<SysOperLog> selectOperLogList(SysOperLog operLog) {
+        return operLogMapper.selectOperLogList(operLog);
+    }
+
     /**
      * 批量删除系统操作日志
      * 

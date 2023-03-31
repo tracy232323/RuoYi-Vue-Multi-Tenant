@@ -34,6 +34,7 @@ import com.ruoyi.project.system.domain.SysUser;
 import com.ruoyi.project.system.mapper.SysUserMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,7 +55,7 @@ public class DemoServiceImpl implements DemoService {
     @Autowired
     private MapUserNodeMapper mapUserNodeMapper;
     @Autowired
-    private RedisCache redisCache;
+    private StringRedisTemplate redisTemplate;
     @Autowired
     private NodeInfoService nodeInfoService;
     @Autowired
@@ -88,7 +89,7 @@ public class DemoServiceImpl implements DemoService {
     public void addAuthUser(ReqUserAuth reqUserAuth, String providerId, Integer userId) {
         // 获取当前登陆人员信息
         List<ReqUserAuth.UserAuth> list = reqUserAuth.getList();
-        if( list.isEmpty() ){
+        if (list.isEmpty()) {
             throw new CustomException("无添加人员");
         }
         //需要插入的人员
@@ -98,13 +99,13 @@ public class DemoServiceImpl implements DemoService {
         ReqUserAuth.UserAuth tempUserAuth = list.get(0);
         nodeInfo = nodeInfoMapper.selectOne(tempUserAuth.getNodeProviderId(), tempUserAuth.getOrgId());
         // 首先校验权限，即在当前节点，或者是前序节点中是否存在管理权限
-        Boolean aBoolean = checkAuthority(nodeInfo,providerId,userId);
-        if( Boolean.FALSE.equals(aBoolean) ){
+        Boolean aBoolean = checkAuthority(nodeInfo, providerId, userId);
+        if (Boolean.FALSE.equals(aBoolean)) {
             throw new CustomException("无管理权限");
         }
         String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
         String loginUserName = new JSONObject(loginUser).get("name", String.class);
-        if ( StringUtils.isEmpty(nodeInfo) ){
+        if (StringUtils.isEmpty(nodeInfo)) {
             throw new CustomException("添加节点不存在");
         }
         for (ReqUserAuth.UserAuth userAuth : list) {
@@ -134,7 +135,7 @@ public class DemoServiceImpl implements DemoService {
             sysOperLog.setOperatorType(1);
             sysOperLog.setOperName(loginUserName);
 //            sysOperLog.setDeptName("神州数码");
-            sysOperLog.setNodeId(userAuth.getOrgId());
+            sysOperLog.setNodeId(nodeInfo.getId());
             sysOperLog.setOperInfo("在" + nodePath + "添加" + path + "人员");
             addOperLogs.add(sysOperLog);
         }
@@ -161,13 +162,13 @@ public class DemoServiceImpl implements DemoService {
     @Override
     public void addAuth(ReqAuth reqAuth, String providerId, Integer userId) {
         Integer[] ids = reqAuth.getIds();
-        if( ids.length <= 0 ){
+        if (ids.length <= 0) {
             throw new CustomException("无修改人员");
         }
         MapUserNode tempNodeMap = mapUserNodeMapper.selectOneById(ids[0]);
         NodeInfo tempNode = nodeInfoMapper.selectOneById(tempNodeMap.getNodeId());
-        Boolean aBoolean = checkAuthority(tempNode,providerId,userId);
-        if( Boolean.FALSE.equals(aBoolean) ){
+        Boolean aBoolean = checkAuthority(tempNode, providerId, userId);
+        if (Boolean.FALSE.equals(aBoolean)) {
             throw new CustomException("无管理权限");
         }
         String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
@@ -175,20 +176,24 @@ public class DemoServiceImpl implements DemoService {
         for (Integer id : ids) {
             MapUserNode userNodeMap = mapUserNodeMapper.selectOneById(id);
             mapUserNodeMapper.update2Auth(id, reqAuth.getIsManage(), reqAuth.getIsShow());
-            String mappingId = userNodeMap.getCompanyId()+"|"+userNodeMap.getUserId();
+            String mappingId = userNodeMap.getCompanyId() + "|" + userNodeMap.getUserId();
             // 判断系统用户表有没有这个人，有的
             SysUser sysUser = sysUserMapper.selectUserByMappingId(mappingId);
             // 检测权限，如果是无浏览，则删除这个人
-            if( ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE.equals(reqAuth.getIsShow()) ){
-                if( !StringUtils.isEmpty(sysUser) ){
+            if (ApiOperationConstant.AUTHORITY_NOT_SHOW_VALUE.equals(reqAuth.getIsShow())) {
+                if (!StringUtils.isEmpty(sysUser)) {
                     //删除
                     sysUserMapper.deleteUserById(sysUser.getUserId());
+                    String s = redisTemplate.opsForValue().get(sysUser.getUserName());
+                    if (!StringUtils.isEmpty(s)) {
+                        redisTemplate.delete(sysUser.getUserName());
+                    }
                 }
-            }else{
-                if( StringUtils.isEmpty(sysUser) ){
+            } else {
+                if (StringUtils.isEmpty(sysUser)) {
                     //添加
                     SysUser addUser = new SysUser();
-                    addUser.setUserName("admin"+userNodeMap.getUserId());
+                    addUser.setUserName("admin" + userNodeMap.getUserId());
                     addUser.setNickName(userNodeMap.getUserId().toString());
                     addUser.setMappingId(mappingId);
                     addUser.setMappingPwd("admin123");
@@ -235,7 +240,7 @@ public class DemoServiceImpl implements DemoService {
             sysOperLog.setOperatorType(1);
             sysOperLog.setOperName(loginUserName);
 //            sysOperLog.setDeptName("神州数码");
-            sysOperLog.setNodeId(nodeInfo.getNodeId());
+            sysOperLog.setNodeId(tempNode.getId());
             sysOperLog.setOperInfo(info.toString());
             sysOperLogMapper.insertOperlog(sysOperLog);
         }
@@ -251,20 +256,33 @@ public class DemoServiceImpl implements DemoService {
         // 查询当前用户拥有多少预览权限节点
 //        String[] arr = cacheObject.toString().split("\\|");
         List<Integer> ids = Arrays.asList(reqAuth.getIds());
-        if( ids.isEmpty() ){
+        if (ids.isEmpty()) {
             throw new CustomException("无修改人员");
         }
         MapUserNode tempNodeMap = mapUserNodeMapper.selectOneById(ids.get(0));
         NodeInfo tempNode = nodeInfoMapper.selectOneById(tempNodeMap.getNodeId());
-        Boolean aBoolean = checkAuthority(tempNode,providerId,userId);
-        if( Boolean.FALSE.equals(aBoolean) ){
+        Boolean aBoolean = checkAuthority(tempNode, providerId, userId);
+        if (Boolean.FALSE.equals(aBoolean)) {
             throw new CustomException("无管理权限");
         }
         String loginUser = apiOperationUtil.getUserInfo(ApiOperationConstant.GET_USER_INFO_URL, providerId, userId);
-        String loginUserName = new JSONObject(loginUser).get("name", String.class);        List<SysOperLog> addOperLogs = new ArrayList<>();
+        String loginUserName = new JSONObject(loginUser).get("name", String.class);
+        List<SysOperLog> addOperLogs = new ArrayList<>();
         for (Integer id : ids) {
             // 根据id获取映射表信息，从中获取nodeId
             MapUserNode mapUserNode = mapUserNodeMapper.selectOneById(id);
+            String mappingId = mapUserNode.getCompanyId() + "|" + mapUserNode.getUserId();
+            // 判断系统用户表有没有这个人，有的
+            SysUser sysUser = sysUserMapper.selectUserByMappingId(mappingId);
+            // 检测权限，如果是无浏览，则删除这个人
+            if (!StringUtils.isEmpty(sysUser)) {
+                //删除
+                sysUserMapper.deleteUserById(sysUser.getUserId());
+                String s = redisTemplate.opsForValue().get(sysUser.getUserName());
+                if (!StringUtils.isEmpty(s)) {
+                    redisTemplate.delete(sysUser.getUserName());
+                }
+            }
             // 根据id获取node信息
             NodeInfo nodeInfo = nodeInfoMapper.selectOneById(mapUserNode.getId());
             String nodePath = apiOperationUtil.getOrgPath(ApiOperationConstant.GET_ORG_PATH_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
@@ -277,7 +295,7 @@ public class DemoServiceImpl implements DemoService {
             sysOperLog.setOperatorType(1);
             sysOperLog.setOperName(loginUserName);
             sysOperLog.setOperInfo("删除" + nodePath + "上" + mapUserNode.getPath());
-            sysOperLog.setNodeId(nodeInfo.getNodeId());
+            sysOperLog.setNodeId(tempNode.getId());
             addOperLogs.add(sysOperLog);
         }
         mapUserNodeMapper.deleteByNodeIds(ids);
@@ -323,14 +341,14 @@ public class DemoServiceImpl implements DemoService {
         UserInfoVo userInfoVo = new UserInfoVo();
         List<UserInfo> infos = new ArrayList<>();
         // 获取当前节点组织树用户数据
-        if( reqRootTree.getProviderId().equals("demo") ){
+        if (reqRootTree.getProviderId().equals("demo")) {
             return userInfoVo;
         }
-        if ( ApiOperationConstant.TYPE_POSITION.equals(reqRootTree.getType()) ){
+        if (ApiOperationConstant.TYPE_POSITION.equals(reqRootTree.getType())) {
             // 直接执行获取用户的
-            infos =  userInfoMapper.selectList(reqRootTree.getProviderId(), reqRootTree.getOrgId());
+            infos = userInfoMapper.selectList(reqRootTree.getProviderId(), reqRootTree.getOrgId());
             userInfoVo.setTotal(infos.size());
-            List<UserInfo> page = getPage(infos,pageNum,pageSize);
+            List<UserInfo> page = getPage(infos, pageNum, pageSize);
             userInfoVo.setRecords(page);
             return userInfoVo;
         }
@@ -342,10 +360,10 @@ public class DemoServiceImpl implements DemoService {
             String providerId = organizationInfo.get("id").toString();
             JSONObject root = new JSONObject(organizationInfo.get("root"));
             Integer id = Integer.parseInt(root.get("id").toString());
-            if( providerId.equals(reqRootTree.getProviderId()) && id.equals(reqRootTree.getOrgId())){
-                infos =  CommonUtil.providerUsers.get(providerId);
+            if (providerId.equals(reqRootTree.getProviderId()) && id.equals(reqRootTree.getOrgId())) {
+                infos = CommonUtil.providerUsers.get(providerId);
                 userInfoVo.setTotal(infos.size());
-                List<UserInfo> page = getPage(infos,pageNum,pageSize);
+                List<UserInfo> page = getPage(infos, pageNum, pageSize);
                 userInfoVo.setRecords(page);
                 return userInfoVo;
             }
@@ -355,17 +373,17 @@ public class DemoServiceImpl implements DemoService {
         NodeInfo nodeInfo = new NodeInfo();
         nodeInfo.setNodeId(reqRootTree.getOrgId());
         nodeInfo.setProviderId(reqRootTree.getProviderId());
-        getUsersInfoFromNode(positionNodes,nodeInfo);
+        getUsersInfoFromNode(positionNodes, nodeInfo);
         Iterator<NodeInfo> iterator = positionNodes.iterator();
-        while( iterator.hasNext() ){
+        while (iterator.hasNext()) {
             NodeInfo next = iterator.next();
             List<UserInfo> userInfos = userInfoMapper.selectList(next.getProviderId(), next.getNodeId());
-            if( !userInfos.isEmpty() ){
+            if (!userInfos.isEmpty()) {
                 infos.addAll(userInfos);
             }
         }
         userInfoVo.setTotal(infos.size());
-        List<UserInfo> page = getPage(infos,pageNum,pageSize);
+        List<UserInfo> page = getPage(infos, pageNum, pageSize);
         userInfoVo.setRecords(page);
         return userInfoVo;
     }
@@ -374,10 +392,10 @@ public class DemoServiceImpl implements DemoService {
     public List<UserInfo> getNodeAllUserToExcel(Integer type, String currentProviderId, Integer orgId) {
         List<UserInfo> infos = new ArrayList<>();
         // 获取当前节点组织树用户数据
-        if( currentProviderId.equals("demo") ){
+        if (currentProviderId.equals("demo")) {
             return infos;
         }
-        if ( ApiOperationConstant.TYPE_POSITION.equals(type) ){
+        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
             // 直接执行获取用户的
             return userInfoMapper.selectList(currentProviderId, orgId);
         }
@@ -389,8 +407,8 @@ public class DemoServiceImpl implements DemoService {
             String providerId = organizationInfo.get("id").toString();
             JSONObject root = new JSONObject(organizationInfo.get("root"));
             Integer id = Integer.parseInt(root.get("id").toString());
-            if( providerId.equals(currentProviderId) && id.equals(orgId)){
-                infos =  CommonUtil.providerUsers.get(providerId);
+            if (providerId.equals(currentProviderId) && id.equals(orgId)) {
+                infos = CommonUtil.providerUsers.get(providerId);
                 return infos;
             }
         }
@@ -399,38 +417,41 @@ public class DemoServiceImpl implements DemoService {
         NodeInfo nodeInfo = new NodeInfo();
         nodeInfo.setNodeId(orgId);
         nodeInfo.setProviderId(currentProviderId);
-        getUsersInfoFromNode(positionNodes,nodeInfo);
+        getUsersInfoFromNode(positionNodes, nodeInfo);
         Iterator<NodeInfo> iterator = positionNodes.iterator();
-        while( iterator.hasNext() ){
+        while (iterator.hasNext()) {
             NodeInfo next = iterator.next();
             List<UserInfo> userInfos = userInfoMapper.selectList(next.getProviderId(), next.getNodeId());
-            if( !userInfos.isEmpty() ){
+            if (!userInfos.isEmpty()) {
                 infos.addAll(userInfos);
             }
         }
         return infos;
     }
 
-    public List<UserInfo> getPage(List<UserInfo> infos,Integer pageNum, Integer pageSize){
+    public List<UserInfo> getPage(List<UserInfo> infos, Integer pageNum, Integer pageSize) {
         Integer count = infos.size();
         Integer pageCount;
-        if( count % pageSize == 0 ){
+        if (count % pageSize == 0) {
             pageCount = count / pageSize;
-        }else{
+        } else {
             pageCount = count / pageSize + 1;
         }
         int fromIndex;
         int toIndex;
-        if( !pageCount.equals(pageNum + 1) ){
+        if (!pageCount.equals(pageNum + 1)) {
             fromIndex = pageNum * pageSize;
             toIndex = fromIndex + pageSize;
-            if( toIndex > count ){
-                fromIndex = ( pageNum - 1 ) * pageSize;
+            if (toIndex > count) {
+                fromIndex = (pageNum - 1) * pageSize;
                 toIndex = count;
             }
-        }else{
+        } else {
             fromIndex = pageNum * pageSize;
             toIndex = count;
+        }
+        if (fromIndex < 0) {
+            fromIndex = 0;
         }
         return infos.subList(fromIndex, toIndex);
     }
@@ -438,27 +459,25 @@ public class DemoServiceImpl implements DemoService {
 
     /**
      * 通过当前节点获取节点树中的岗位节点列表
+     *
      * @param nodeInfo
      * @return
      */
-    public void getUsersInfoFromNode(List<NodeInfo> positionNodes,NodeInfo nodeInfo){
+    public void getUsersInfoFromNode(List<NodeInfo> positionNodes, NodeInfo nodeInfo) {
         List<NodeInfo> nodeInfos = nodeInfoMapper.selectListByFatherId(nodeInfo);
-        if( nodeInfos.isEmpty() ){
+        if (nodeInfos.isEmpty()) {
             return;
         }
         Iterator<NodeInfo> iterator = nodeInfos.iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             NodeInfo next = iterator.next();
-            if( ApiOperationConstant.TYPE_POSITION.equals(next.getType()) ){
+            if (ApiOperationConstant.TYPE_POSITION.equals(next.getType())) {
                 positionNodes.add(next);
-            }else{
-                getUsersInfoFromNode(positionNodes,next);
+            } else {
+                getUsersInfoFromNode(positionNodes, next);
             }
         }
     }
-
-
-
 
     private void getOrgUsers(String providerId, Integer type, Integer orgId, Integer positionId, List<JSONObject> list) {
         //获取所有二级集团单位集合
@@ -484,7 +503,6 @@ public class DemoServiceImpl implements DemoService {
         }
     }
 
-
     public String buildShowTree(List<NodeInfo> nodeInfos, TreeNode rootTree) {
         Iterator<NodeInfo> nodeInfoIterator = nodeInfos.iterator();
         while (nodeInfoIterator.hasNext()) {
@@ -495,10 +513,16 @@ public class DemoServiceImpl implements DemoService {
     }
 
     public void buildShowTree(NodeInfo nodeInfo, TreeNode rootNode) {
-        String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
-        // 遍历organizationChildren将其封装为TreeNode
-        JSONObject childrenJSON = new JSONObject(organizationChildren);
-        getOrganizationChildren(rootNode, childrenJSON, nodeInfo.getProviderId(), commonUtil.getRootNode().getNodeId());
+        try {
+            String organizationChildren = apiOperationUtil.getOrganizationChildren(ApiOperationConstant.GET_ORGANIZATION_CHILDREN_URL, nodeInfo.getProviderId(), nodeInfo.getNodeId());
+            // 遍历organizationChildren将其封装为TreeNode
+            JSONObject childrenJSON = new JSONObject(organizationChildren);
+            getOrganizationChildren(rootNode, childrenJSON, nodeInfo.getProviderId(), commonUtil.getRootNode().getNodeId());
+
+        } catch (Exception e) {
+            // 发生异常说明，这个节点无法用他们的缓存，自己开始构建
+            getOrganizationChildren(rootNode, nodeInfo);
+        }
     }
 
     public void getOrganizationChildren(TreeNode treeNode, JSONObject data, String providerId, Integer id) {
@@ -522,6 +546,25 @@ public class DemoServiceImpl implements DemoService {
         }
     }
 
+    public void getOrganizationChildren(TreeNode treeNode, NodeInfo nodeInfo) {
+        Integer type = nodeInfo.getType();
+        if (ApiOperationConstant.TYPE_POSITION.equals(type)) {
+            return;
+        }
+        TreeNode currentTreeNode = new TreeNode();
+        currentTreeNode.setNodeInfo(nodeInfo);
+        Integer insertIndex = commonUtil.getInsertIndex(treeNode.getChildren(), nodeInfo.getOrder());
+        treeNode.getChildren().add(insertIndex, currentTreeNode);
+        List<NodeInfo> nodeInfos = nodeInfoService.selectListByFatherId(nodeInfo);
+        if (!nodeInfos.isEmpty()) {
+            Iterator<NodeInfo> iterator = nodeInfos.iterator();
+            while (iterator.hasNext()) {
+                NodeInfo next = iterator.next();
+                getOrganizationChildren(currentTreeNode, next);
+            }
+        }
+    }
+
     public NodeInfo buildNodeInfoByJSON(JSONObject data, String providerId, Integer fatherId) {
         Integer type = data.get(NodeFieldConstant.TYPE_FIELD_NAME, Integer.class);
         Integer id = data.get(NodeFieldConstant.ID_FIELD_NAME, Integer.class);
@@ -532,20 +575,20 @@ public class DemoServiceImpl implements DemoService {
     }
 
     public Boolean checkAuthority(NodeInfo nodeInfo, String providerId, Integer userId) {
-        if( StringUtils.isEmpty(nodeInfo) ){
+        if (StringUtils.isEmpty(nodeInfo)) {
             return false;
         }
         // 校验当前节点上有没有权限
         MapUserNode mapUserNode = mapUserNodeMapper.selectOne(providerId, userId, nodeInfo.getId());
-        if( StringUtils.isEmpty(mapUserNode) ){
-            if( nodeInfo.getFatherId() == 0 ){
+        if (StringUtils.isEmpty(mapUserNode)) {
+            if (nodeInfo.getFatherId() == 0) {
                 nodeInfo.setProviderId("");
             }
             NodeInfo node = nodeInfoService.selectByNodeId(nodeInfo);
-            return checkAuthority(node,providerId,userId);
+            return checkAuthority(node, providerId, userId);
         }
         // 有就返回true
-        if( ApiOperationConstant.AUTHORITY_MANAGER_VALUE.equals(mapUserNode.getIsManage()) ){
+        if (ApiOperationConstant.AUTHORITY_MANAGER_VALUE.equals(mapUserNode.getIsManage())) {
             return true;
         }
         return false;

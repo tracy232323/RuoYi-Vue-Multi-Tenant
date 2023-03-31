@@ -106,7 +106,7 @@ public class BuildTreeUtil {
             Map.Entry<IdObject, NodeInfo> next = entryIterator.next();
             boolean b = saveGrandfatherNode(infoHashMap, next.getValue());
             if (!b) {
-                nodeInfos.remove(next);
+                nodeInfos.remove(next.getValue());
             }
         }
     }

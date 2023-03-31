@@ -4,20 +4,20 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.ruoyi.common.exception.CustomException;
 import com.ruoyi.common.utils.ServletUtils;
+import com.ruoyi.demo.config.NodeAllUserInitConfig;
 import com.ruoyi.demo.config.ScheduledUpdate;
-import com.ruoyi.demo.domain.MapUserNode;
+import com.ruoyi.demo.domain.*;
 import cn.hutool.json.JSONUtil;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
-import com.ruoyi.demo.domain.NodeOperLog;
-import com.ruoyi.demo.domain.PositionOperLog;
-import com.ruoyi.demo.domain.UserInfo;
 import com.ruoyi.demo.domain.request.ReqAuth;
 import com.ruoyi.demo.domain.request.ReqRootTree;
 import com.ruoyi.demo.domain.request.ReqUserAuth;
 import com.ruoyi.demo.domain.vo.*;
 import com.ruoyi.demo.service.DemoService;
+import com.ruoyi.demo.service.NodeInfoService;
 import com.ruoyi.demo.service.NodeOperLogService;
 import com.ruoyi.demo.service.PositionOperLogService;
 import com.ruoyi.framework.redis.RedisCache;
@@ -62,6 +62,8 @@ public class DemoController {
     private NodeOperLogService nodeOperLogService;
     @Autowired
     private PositionOperLogService positionOperLogService;
+    @Autowired
+    private NodeInfoService nodeInfoService;
 
     @ApiOperation("获取HR树，每个节点调一次")
     @PostMapping("/getOringTree")
@@ -150,6 +152,7 @@ public class DemoController {
         ExcelWriter writer= ExcelUtil.getWriter(true);
         //自定义标题别名
         writer.addHeaderAlias("index","序号");
+        writer.addHeaderAlias("name","名称");
         writer.addHeaderAlias("unit","单位");
         writer.addHeaderAlias("dept","部门");
         writer.addHeaderAlias("position","岗位");
@@ -245,6 +248,7 @@ public class DemoController {
         //在内存操作，写到浏览器
         ExcelWriter writer= ExcelUtil.getWriter(true);
         //自定义标题别名
+        writer.addHeaderAlias("index","序号");
         writer.addHeaderAlias("path","授权对象");
         writer.addHeaderAlias("isManage","管理权限");
         writer.addHeaderAlias("isShow","浏览权限");
@@ -276,16 +280,30 @@ public class DemoController {
     }
 
     @ApiOperation("根据nodeId获取当前节点记录的历史节点变动日志内容")
-    @GetMapping("/get/node/log/{nodeId}")
-    public AjaxResult getNodeOperLog(@ApiParam("节点参数") @PathVariable Integer nodeId){
-        List<NodeOperLog> nodeOperLogs = nodeOperLogService.selectListByNodeId(nodeId);
+    @GetMapping("/get/node/log/{providerId}/{nodeId}")
+    public AjaxResult getNodeOperLog(@ApiParam("单位") @PathVariable String providerId,@ApiParam("节点参数") @PathVariable Integer nodeId){
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setProviderId(providerId);
+        nodeInfo.setNodeId(nodeId);
+        NodeInfo node = nodeInfoService.selectOne(nodeInfo);
+        if( StringUtils.isEmpty(node) ){
+            throw new CustomException("无此节点");
+        }
+        List<NodeOperLog> nodeOperLogs = nodeOperLogService.selectListByNodeId(node.getId());
         return AjaxResult.success(nodeOperLogs);
     }
 
     @ApiOperation("根据nodeId获取当前节点记录的历史节点变动日志内容(excel)")
-    @GetMapping("/get/node/log/{nodeId}/excel")
-    public void exportNodeOperLog(@PathVariable Integer nodeId, HttpServletResponse response){
-        List<NodeOperLog> nodeOperLogs = nodeOperLogService.selectListByNodeId(nodeId);
+    @GetMapping("/get/node/log/{providerId}/{nodeId}/excel")
+    public void exportNodeOperLog(@ApiParam("单位") @PathVariable String providerId,@ApiParam("节点参数") @PathVariable Integer nodeId, HttpServletResponse response){
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setProviderId(providerId);
+        nodeInfo.setNodeId(nodeId);
+        NodeInfo node = nodeInfoService.selectOne(nodeInfo);
+        if( StringUtils.isEmpty(node) ){
+            throw new CustomException("无此节点");
+        }
+        List<NodeOperLog> nodeOperLogs = nodeOperLogService.selectListByNodeId(node.getId());
         ArrayList<NodeOperVo> nodeOperVos = new ArrayList<>();
         Iterator<NodeOperLog> iterator = nodeOperLogs.iterator();
         int index = 1;
@@ -330,16 +348,30 @@ public class DemoController {
     }
 
     @ApiOperation("根据nodeId获取当前节点记录的历史岗位变动日志内容")
-    @GetMapping("/get/position/log/{nodeId}")
-    public AjaxResult getPostionOperLog(@ApiParam("节点参数") @PathVariable Integer nodeId){
-        List<PositionOperLog> positionOperLogs = positionOperLogService.selectListByNodeId(nodeId);
+    @GetMapping("/get/position/log/{providerId}/{nodeId}")
+    public AjaxResult getPostionOperLog(@ApiParam("单位") @PathVariable String providerId,@ApiParam("节点参数") @PathVariable Integer nodeId){
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setProviderId(providerId);
+        nodeInfo.setNodeId(nodeId);
+        NodeInfo node = nodeInfoService.selectOne(nodeInfo);
+        if( StringUtils.isEmpty(node) ){
+            throw new CustomException("无此节点");
+        }
+        List<PositionOperLog> positionOperLogs = positionOperLogService.selectListByNodeId(node.getId());
         return AjaxResult.success(positionOperLogs);
     }
 
     @ApiOperation("根据nodeId获取当前节点记录的历史节点变动日志内容(excel)")
-    @GetMapping("/get/position/log/{nodeId}/excel")
-    public void exportPositionOperLog(@PathVariable Integer nodeId, HttpServletResponse response){
-        List<PositionOperLog> positionOperLogs = positionOperLogService.selectListByNodeId(nodeId);
+    @GetMapping("/get/position/log/{providerId}/{nodeId}/excel")
+    public void exportPositionOperLog(@ApiParam("单位") @PathVariable String providerId,@ApiParam("节点参数") @PathVariable Integer nodeId, HttpServletResponse response){
+        NodeInfo nodeInfo = new NodeInfo();
+        nodeInfo.setProviderId(providerId);
+        nodeInfo.setNodeId(nodeId);
+        NodeInfo node = nodeInfoService.selectOne(nodeInfo);
+        if( StringUtils.isEmpty(node) ){
+            throw new CustomException("无此节点");
+        }
+        List<PositionOperLog> positionOperLogs = positionOperLogService.selectListByNodeId(node.getId());
         ArrayList<PositionOperLogVo> positionOperLogVos = new ArrayList<>();
         Iterator<PositionOperLog> iterator = positionOperLogs.iterator();
         int index = 1;
@@ -398,6 +430,12 @@ public class DemoController {
         return "updatePosition";
     }
 
+    @Autowired
+    private NodeAllUserInitConfig nodeAllUserInitConfig;
 
-
+    @GetMapping("initAndUpdateNodeAllUser")
+    public String initAndUpdateNodeAllUser(){
+        nodeAllUserInitConfig.initAndUpdateNodeAllUser();
+        return "initAndUpdateNodeAllUser";
+    }
 }

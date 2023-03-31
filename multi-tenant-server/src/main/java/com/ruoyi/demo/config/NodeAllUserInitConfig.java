@@ -13,6 +13,7 @@ import com.sun.scenario.animation.shared.FiniteClipEnvelope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
  **/
 @Configuration
 @Slf4j
+@EnableScheduling
 public class NodeAllUserInitConfig {
 
     @Autowired
@@ -41,8 +43,9 @@ public class NodeAllUserInitConfig {
     @Autowired
     private UserInfoMapper userInfoMapper;
 
-//    @PostConstruct
-    @Scheduled(cron = "0 0 0/1 * * ?")
+    @PostConstruct
+//    @Scheduled(cron = "0 0 0/1 * * ?")
+    @Scheduled(cron = "0 0/30 * * * ?")
     @Transactional
     public void initAndUpdateNodeAllUser(){
         // 获取当前全部的二级节点，遍历二级节点

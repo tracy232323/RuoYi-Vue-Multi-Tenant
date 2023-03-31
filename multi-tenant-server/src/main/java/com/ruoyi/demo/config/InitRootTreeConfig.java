@@ -20,6 +20,8 @@ import com.ruoyi.demo.util.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.StringUtils;
 import javax.annotation.PostConstruct;
 import java.util.*;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
  **/
 @Configuration
 @Slf4j
+@EnableScheduling
 public class InitRootTreeConfig {
     @Autowired
     private ApiOperationUtil apiOperationUtil;
@@ -54,7 +57,8 @@ public class InitRootTreeConfig {
     @Autowired
     private UserInfoMapper userInfoMapper;
 
-//    @PostConstruct
+    @PostConstruct
+    @Scheduled(cron = "0 0/20 * * * ?")
     public void init() {
         apiOperationUtil.getAccessToken(
                 ApiOperationConstant.GET_ACCESS_TOKEN_URL,
@@ -180,13 +184,12 @@ public class InitRootTreeConfig {
             String key = RedisConstant.REDIS_USER_TREE_PREFIX + rootUser.getProviderId() + ":" + rootUser.getUserId();
             BuildTreeUtil.rootTree.put(key, treeJSON);
         }
-        for (String providerId : providerIds) {
-            // 获取hr系统中二级节点下的完整路径。去迭代遍历并收集用户信息
-            log.info("正在构建:{}的用户缓存",providerId);
-            CommonUtil.providerUsers.put(providerId,userInfoMapper.selectListByProviderId(providerId));
-        }
+//        for (String providerId : providerIds) {
+//            // 获取hr系统中二级节点下的完整路径。去迭代遍历并收集用户信息
+//            log.info("正在构建:{}的用户缓存",providerId);
+//            CommonUtil.providerUsers.put(providerId,userInfoMapper.selectListByProviderId(providerId));
+//        }
     }
-
 
     public void grantedPermissionsByNodeList(String providerId, Integer userId, String type, NodeInfo nodeInfo, String path,Integer positionId) {
         // 使用iterator在大数据量时，效率高
